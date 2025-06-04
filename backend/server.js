@@ -9,7 +9,6 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const path = require('path');
-const L = require('leaflet'); // ← Added for Mercator projection
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
@@ -40,7 +39,7 @@ mongoose
   .then(() => console.log('Connected to MongoDB'))
   .catch((error) => console.error('MongoDB connection error:', error));
 
-// Sub-schema for session tracking
+// Sub‐schema for session tracking
 const sessionSchema = new mongoose.Schema({
   start: Date,
   end: Date,
@@ -48,7 +47,7 @@ const sessionSchema = new mongoose.Schema({
   ipAddress: String
 }, { _id: false });
 
-// Sub-schema for renewal history
+// Sub‐schema for renewal history
 const renewalEntrySchema = new mongoose.Schema({
   date: { type: Date,   required: true },
   type: { type: String, required: true }
@@ -112,9 +111,15 @@ const calculateDatesAndStatus = (startDate, subscriptionType) => {
   return { endDate, daysRemaining, status };
 };
 
-// Recursive shiftCoordinates using Leaflet’s Mercator projection
+const FEET_TO_METERS = 0.3048;
+
+/**
+ * shiftCoordinates(coords, dx, dy)
+ *
+ * Uses pure‐JS Web-Mercator formulas (no Leaflet) to convert [lon, lat] ↔ [X, Y] in meters,
+ * add (dx, dy), then convert back to [lon, lat]. Recurses into nested arrays for Polygon/MultiPolygon.
+ */
 function shiftCoordinates(coords, dx, dy) {
-  // If we have a plain [lon, lat] pair:
   if (
     Array.isArray(coords) &&
     typeof coords[0] === 'number' &&
@@ -123,38 +128,27 @@ function shiftCoordinates(coords, dx, dy) {
     const lon = coords[0];
     const lat = coords[1];
 
-    // 1) Convert (lon, lat) → Web-Mercator (X, Y) in meters
-    //    Formula: 
-    //      X = lon * R * π/180
-    //      Y = ln( tan( (90 + lat) * π/360 ) ) * R
-    //    where R = 6378137 m (earth radius for EPSG:3857)
+    // Web-Mercator constants
     const R = 6378137;
+    // Project to meters
     const x0 = (lon * Math.PI * R) / 180;
-    const y0 = Math.log(
-      Math.tan((90 + lat) * Math.PI / 360)
-    ) * R;
+    const y0 = Math.log(Math.tan((90 + lat) * Math.PI / 360)) * R;
 
-    // 2) Apply dx, dy (meters)
+    // Apply shift in meters
     const x1 = x0 + dx;
     const y1 = y0 + dy;
 
-    // 3) Convert back: Web-Mercator (X1, Y1) → (lat1, lon1)
-    //    lon1 = (X1 / R) * (180/π)
-    //    lat1 = ( (360/π) * arctan( e^(Y1/R) ) ) − 90
+    // Unproject
     const lon1 = (x1 / R) * (180 / Math.PI);
     const lat1 = (360 / Math.PI) * Math.atan(Math.exp(y1 / R)) - 90;
 
     return [lon1, lat1];
   }
-
-  // Otherwise, assume it's an array of deeper rings / polygons:
-  return coords.map((c) => shiftCoordinates(c, dx, dy));
+  return coords.map(c => shiftCoordinates(c, dx, dy));
 }
-
 
 // Utility: Compute bounding box of a FeatureCollection
 function getGeoJsonBounds(features) {
-  // Returns [[minLat, minLng], [maxLat, maxLng]] or null if none
   const coords = [];
   features.forEach((f) => {
     let arr = [];
@@ -163,23 +157,20 @@ function getGeoJsonBounds(features) {
     coords.push(...arr);
   });
   if (!coords.length) return null;
-  const lats = coords.map((c) => c[1]);
-  const lngs = coords.map((c) => c[0]);
+  const lats = coords.map(c => c[1]);
+  const lngs = coords.map(c => c[0]);
   return [
     [Math.min(...lats), Math.min(...lngs)],
     [Math.max(...lats), Math.max(...lngs)]
   ];
 }
 
-// Compute dx, dy in meters needed to move current bounds to target bounds
+// Compute dx, dy (in meters) needed to move current bounds → target bounds (align SW corners)
 function computeShift(current, target) {
-  // Use Southwest corner for alignment
   const [curLat, curLng] = current[0];
   const [tgtLat, tgtLng] = target[0];
-  // Differences in degrees
   const dLat = tgtLat - curLat;
   const dLng = tgtLng - curLng;
-  // Convert degree differences to approximate meters
   const metersY = dLat * 111320;
   const metersX = dLng * 111320 * Math.cos(curLat * Math.PI / 180);
   return { dx: metersX, dy: metersY };
@@ -738,7 +729,6 @@ app.get('/online-users', isAuthenticated, async (_req, res) => {
 app.post('/api/geojson/:tehsil/:mauza/shift', isAuthenticated, async (req, res) => {
   const { tehsil, mauza } = req.params;
   const { distance, direction } = req.body;
-  const FEET_TO_METERS = 0.3048;
   const meters = parseFloat(distance) * FEET_TO_METERS;
 
   let dx = 0, dy = 0;
@@ -761,6 +751,10 @@ app.post('/api/geojson/:tehsil/:mauza/shift', isAuthenticated, async (req, res) 
   doc.data.features.forEach((f) => {
     f.geometry.coordinates = shiftCoordinates(f.geometry.coordinates, dx, dy);
   });
+
+  // ← Mark the Mixed field as modified before saving
+  doc.markModified('data');
+
   await doc.save();
 
   console.log(
@@ -784,6 +778,10 @@ app.post('/api/geojson/:tehsil/:mauza/reset', isAuthenticated, async (req, res) 
   doc.data.features.forEach(f => {
     f.geometry.coordinates = shiftCoordinates(f.geometry.coordinates, dx, dy);
   });
+
+  // ← Mark the Mixed field as modified before saving
+  doc.markModified('data');
+
   await doc.save();
   res.json({ success: true, data: doc.data });
 });

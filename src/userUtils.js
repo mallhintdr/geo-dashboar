@@ -18,7 +18,7 @@ export const subscriptionOptions = [
   { value: 'Monthly', days: 30 },
   { value: 'Quarterly', days: 90 },
   { value: 'Biannual', days: 180 },
-  { value: 'Annual', days: 1000},
+  { value: 'Annual', days: 365},
 ];
 
 export const calculateEndDate = (startDate, subscriptionType) => {
