@@ -1,0 +1,14 @@
+.compass-container {
+    position: absolute;
+    top: 7px;  /* Adjusted for top alignment */
+    right: 7px; /* Adjusted for right alignment */
+    width: 50px;  /* Reduced to 75% of 120px */
+    height: 50px;  /* Reduced to 75% of 120px */
+    z-index: 1000; /* Ensures it stays on top of other map layers */
+  }
+  
+  .compass {
+    width: 100%;  /* Ensure SVG fills the container */
+    height: 100%;  /* Ensure SVG fills the container */
+  }
+  
