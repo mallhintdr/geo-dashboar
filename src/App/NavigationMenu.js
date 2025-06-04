@@ -11,6 +11,11 @@ const NavigationMenu = ({
   clearAppData,
   onOpenShiftModal,    // Handler for opening the Shift/Transform Mauza form
   canShiftMauza = false, // Controls visibility of the Shift/Transform Mauza item
+  onSaveLayer,
+  drawnGeoJson,
+  savedLayers = [],
+  onLoadLayer,
+  onDeleteLayer,
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +25,8 @@ const NavigationMenu = ({
     navigate(path);
     handleMenuToggle();
   };
+
+  const [showLayers, setShowLayers] = useState(false);
 
   return (
     <Offcanvas show={showMenu} onHide={handleMenuToggle} placement="start">
@@ -50,11 +57,59 @@ const NavigationMenu = ({
             </Nav.Link>
           ) : (
             <Nav.Link onClick={() => go('/login')}>🔐 Login</Nav.Link>
-          )}
+         )}
 
           {/* Go-to-location tool */}
           <Nav.Link onClick={onGoToLocationClick}>📍 Go To Location</Nav.Link>
 
+          {/* Layer management */}
+          {user && (
+            <>
+              <Nav.Link onClick={() => setShowLayers(v => !v)}>
+                📁 Layers {showLayers ? '▲' : '▼'}
+              </Nav.Link>
+              {showLayers && (
+                <div style={{ marginLeft: '1rem' }}>
+                  <Nav.Link
+                    onClick={() => { onSaveLayer(); handleMenuToggle(); }}
+                    disabled={
+                      !drawnGeoJson ||
+                      !drawnGeoJson.features?.length ||
+                      savedLayers.length >= 10
+                    }
+                  >
+                    💾 Save Current
+                  </Nav.Link>
+                  {savedLayers.length > 0 ? (
+                    savedLayers.map(layer => (
+                      <Nav.Link
+                        key={layer._id}
+                        onClick={() => {
+                          onLoadLayer(layer);
+                          handleMenuToggle();
+                        }}
+                      >
+                        {layer.name}
+                        <span
+                          onClick={e => {
+                            e.stopPropagation();
+                            onDeleteLayer(layer);
+                          }}
+                          style={{ float: 'right' }}
+                        >
+                          🗑
+                        </span>
+                      </Nav.Link>
+                    ))
+                  ) : (
+                    <Nav.Item style={{ paddingLeft: '1rem' }}>
+                      No Layers
+                    </Nav.Item>
+                  )}
+                </div>
+              )}
+            </>
+          )}
           {/* Shift/Transform Mouza (only if a Mauza is loaded) */}
           {user && onOpenShiftModal && canShiftMauza && (
             <Nav.Link

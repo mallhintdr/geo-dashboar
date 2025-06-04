@@ -11,11 +11,6 @@ const Header = ({
  murabbaOptions = [],
   handleMurabbaSelection,
   // setShajraEnabled is no longer used here; metadata checking is centralized in MapComponent
-  onSaveLayer,
-  drawnGeoJson,
-  savedLayers = [],
-  onLoadLayer,
-  onDeleteLayer,
 }) => {
   const { user, loading } = useAuth();
   const [filterMauza, setFilterMauza] = useState('');
@@ -145,40 +140,7 @@ const Header = ({
               </Dropdown.Menu>
                         </Dropdown>
           )}
-          {user && (
-            <>
-              <button
-                className="btn btn-outline-light ms-2"
-                disabled={!drawnGeoJson || !drawnGeoJson.features?.length || savedLayers.length >= 10}
-                onClick={onSaveLayer}
-              >
-                Save Layer
-              </button>
-              <Dropdown className="ms-2">
-                <Dropdown.Toggle variant="outline-light">Layers</Dropdown.Toggle>
-                <Dropdown.Menu style={{ maxHeight: 300, overflowY: 'auto' }}>
-                  {savedLayers.length > 0 ? (
-                    savedLayers.map((layer) => (
-                      <Dropdown.Item key={layer._id} onClick={() => onLoadLayer(layer)}>
-                        {layer.name}
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteLayer(layer);
-                          }}
-                          style={{ float: 'right' }}
-                        >
-                          🗑
-                        </span>
-                      </Dropdown.Item>
-                    ))
-                  ) : (
-                    <Dropdown.Item disabled>No Layers</Dropdown.Item>
-                  )}
-                </Dropdown.Menu>
-              </Dropdown>
-            </>
-          )}
+
           <div onClick={handleProfileClick} className="profile-container" style={{ cursor: 'pointer' }}>
             <img
               src="https://cdn-icons-png.flaticon.com/512/2922/2922510.png"

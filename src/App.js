@@ -272,12 +272,7 @@ const handleDrawnLayerChange = useCallback((data) => {
         murabbaOptions={murabbaOptions}
         handleMurabbaSelection={setSelectedMurabba}
         setShajraEnabled={setShajraEnabled}
-        onSaveLayer={handleSaveLayer}
-        drawnGeoJson={drawnLayerData}
-        savedLayers={userLayers}
-        onLoadLayer={handleLoadLayer}
-        onDeleteLayer={handleDeleteLayer}
-      />
+        />
 
       <NavigationMenu
         showMenu={showMenu}
@@ -303,6 +298,11 @@ const handleDrawnLayerChange = useCallback((data) => {
         }}
         canShiftMauza={canShiftMauza}
         onOpenShiftModal={() => setShowShiftForm(true)}
+        onSaveLayer={handleSaveLayer}
+        drawnGeoJson={drawnLayerData}
+        savedLayers={userLayers}
+        onLoadLayer={handleLoadLayer}
+        onDeleteLayer={handleDeleteLayer}
       />
 
       {loading ? (

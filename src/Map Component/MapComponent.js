@@ -128,12 +128,28 @@ const MapComponent = ({
     [onDrawnChange]
   );
 
-  useEffect(() => {
+ useEffect(() => {
     if (!userLayerToLoad || !drawnItemsRef.current) return;
     drawnItemsRef.current.clearLayers();
-    L.geoJSON(userLayerToLoad).eachLayer((layer) => {
+
+    const styleFeature = (feature) => {
+      const type = feature.geometry?.type;
+      if (type === 'LineString' || type === 'MultiLineString') {
+        return { color: '#FF0000', weight: 4, opacity: 1.0 };
+      }
+      if (type === 'Polygon' || type === 'MultiPolygon') {
+        return { color: '#FFD700', weight: 4, opacity: 1.0, fillOpacity: 0.3 };
+      }
+      return { color: '#32CD32', weight: 4, opacity: 1.0, fillOpacity: 0.3 };
+    };
+
+    L.geoJSON(userLayerToLoad, {
+      style: styleFeature,
+      pointToLayer: (feature, latlng) => L.marker(latlng),
+    }).eachLayer((layer) => {
       drawnItemsRef.current.addLayer(layer);
     });
+
     handleDrawnChange(drawnItemsRef.current.toGeoJSON());
   }, [userLayerToLoad, handleDrawnChange, drawnItemsRef]);
 
