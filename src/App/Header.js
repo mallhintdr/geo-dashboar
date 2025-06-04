@@ -8,9 +8,14 @@ const Header = ({
   handleMauzaChange,
   selectedMauza,
   setSelectedMauza,
-  murabbaOptions = [],
+ murabbaOptions = [],
   handleMurabbaSelection,
   // setShajraEnabled is no longer used here; metadata checking is centralized in MapComponent
+  onSaveLayer,
+  drawnGeoJson,
+  savedLayers = [],
+  onLoadLayer,
+  onDeleteLayer,
 }) => {
   const { user, loading } = useAuth();
   const [filterMauza, setFilterMauza] = useState('');
@@ -108,11 +113,11 @@ const Header = ({
           )}
         </div>
         {/* Right side: Murabba dropdown & user profile */}
-        <div className="navbar-right d-flex align-items-center ms-auto">
+        <div className="navbar-right d-flex align-items-center ms-auto">␊
           {user && (
             <Dropdown>
-              <Dropdown.Toggle variant="outline-light" id="murabba-dropdown" className="rounded-dropdown">
-                {selectedMurabba || 'Select Murabba'}
+              <Dropdown.Toggle variant="outline-light" id="murabba-dropdown" className="rounded-dropdown">␊
+                {selectedMurabba || 'Select Murabba'}␊
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <FormControl
@@ -138,7 +143,41 @@ const Header = ({
                   <Dropdown.Item disabled>No Murabba Found</Dropdown.Item>
                 )}
               </Dropdown.Menu>
-            </Dropdown>
+                        </Dropdown>
+          )}
+          {user && (
+            <>
+              <button
+                className="btn btn-outline-light ms-2"
+                disabled={!drawnGeoJson || !drawnGeoJson.features?.length || savedLayers.length >= 10}
+                onClick={onSaveLayer}
+              >
+                Save Layer
+              </button>
+              <Dropdown className="ms-2">
+                <Dropdown.Toggle variant="outline-light">Layers</Dropdown.Toggle>
+                <Dropdown.Menu style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  {savedLayers.length > 0 ? (
+                    savedLayers.map((layer) => (
+                      <Dropdown.Item key={layer._id} onClick={() => onLoadLayer(layer)}>
+                        {layer.name}
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteLayer(layer);
+                          }}
+                          style={{ float: 'right' }}
+                        >
+                          🗑
+                        </span>
+                      </Dropdown.Item>
+                    ))
+                  ) : (
+                    <Dropdown.Item disabled>No Layers</Dropdown.Item>
+                  )}
+                </Dropdown.Menu>
+              </Dropdown>
+            </>
           )}
           <div onClick={handleProfileClick} className="profile-container" style={{ cursor: 'pointer' }}>
             <img

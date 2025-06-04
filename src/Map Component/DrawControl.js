@@ -17,16 +17,17 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const DrawControl = ({ drawnItemsRef }) => { // ✅ CORRECT
+const DrawControl = ({ drawnItemsRef, onDrawnChange }) => { // ✅ CORRECT
   const map = useMap();
   const featureLabels = useRef(new Map()); // Store labels for each feature separately
 
   useEffect(() => {
-    const drawnItems = new L.FeatureGroup().addTo(map);
+        const drawnItems = new L.FeatureGroup().addTo(map);
 
      if (drawnItemsRef) {
     drawnItemsRef.current = drawnItems;
     }
+    onDrawnChange && onDrawnChange(drawnItems.toGeoJSON());
 
     map.drawnItems   = drawnItems;
     map.editTools = new L.Editable(map);
@@ -87,26 +88,31 @@ const DrawControl = ({ drawnItemsRef }) => { // ✅ CORRECT
     map.addControl(drawControl);
 
     // Handle feature creation
+       // Handle feature creation
     map.on(L.Draw.Event.CREATED, (e) => {
       const layer = e.layer;
       drawnItems.addLayer(layer);
       handleFeatureComplete(layer, e.layerType);
+      onDrawnChange && onDrawnChange(drawnItems.toGeoJSON());
     });
 
     // Handle editing of shapes
-    map.on(L.Draw.Event.EDITED, (e) => {
+ map.on(L.Draw.Event.EDITED, (e) => {
       const layers = e.layers;
       layers.eachLayer((layer) => {
         clearFeatureLabels(layer); // Only clear labels of the edited feature (including area labels)
         handleFeatureComplete(layer, getLayerType(layer), true);
       });
+      onDrawnChange && onDrawnChange(drawnItems.toGeoJSON());
     });
     map.on(L.Draw.Event.DELETED, (e) => {
       const layers = e.layers;
       layers.eachLayer((layer) => {
         clearFeatureLabels(layer); // Remove the labels when a feature is deleted
       });
+      onDrawnChange && onDrawnChange(drawnItems.toGeoJSON());
     });
+
 
     map.on(L.Draw.Event.EDITSTART, (e) => {
       const layers = e.layers || drawnItems;

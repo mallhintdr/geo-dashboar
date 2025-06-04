@@ -83,7 +83,18 @@ const geoJsonSchema = new mongoose.Schema({
   data:   { type: mongoose.Schema.Types.Mixed, required: true },
   defaultBounds: { type: [[Number]], default: null } // [[swLat, swLng], [neLat, neLng]]
 });
+
 const GeoJson = mongoose.model('GeoJson', geoJsonSchema);
+
+// --- UserLayer Schema & Model ---
+const userLayerSchema = new mongoose.Schema({
+  userId:   { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  name:     { type: String, required: true },
+  geojson:  { type: mongoose.Schema.Types.Mixed, required: true },
+  updatedAt:{ type: Date, default: Date.now }
+});
+const UserLayer = mongoose.model('UserLayer', userLayerSchema);
+
 
 // Helper: Calculate End Date, Days Remaining, and Status
 const calculateDatesAndStatus = (startDate, subscriptionType) => {
@@ -765,7 +776,7 @@ app.post('/api/geojson/:tehsil/:mauza/shift', isAuthenticated, async (req, res) 
 
 // POST: Reset GeoJSON to Default Bounds
 app.post('/api/geojson/:tehsil/:mauza/reset', isAuthenticated, async (req, res) => {
-  const { tehsil, mauza } = req.params;
+    const { tehsil, mauza } = req.params;
   const doc = await GeoJson.findOne({ tehsil, mauza });
   if (!doc || !doc.defaultBounds) return res.status(400).json({ message: 'No default bounds set' });
 
@@ -782,8 +793,54 @@ app.post('/api/geojson/:tehsil/:mauza/reset', isAuthenticated, async (req, res) 
   // ← Mark the Mixed field as modified before saving
   doc.markModified('data');
 
-  await doc.save();
+await doc.save();
   res.json({ success: true, data: doc.data });
+});
+
+/* ------------------------------------------------------------------
+   User Layer Routes
+------------------------------------------------------------------ */
+// Create new layer (max 10 per user)
+app.post('/api/user-layers', isAuthenticated, async (req, res) => {
+  const { name, geojson } = req.body;
+  if (!name || !geojson) return res.status(400).json({ message: 'Name and geojson required' });
+
+  const count = await UserLayer.countDocuments({ userId: req.user._id });
+  if (count >= 10) return res.status(400).json({ message: 'Layer limit reached' });
+
+  const layer = new UserLayer({
+    userId: req.user._id,
+    name,
+    geojson
+  });
+
+  await layer.save();
+  res.status(201).json(layer);
+});
+
+// List layers for logged-in user
+app.get('/api/user-layers', isAuthenticated, async (req, res) => {
+  const layers = await UserLayer.find({ userId: req.user._id }).sort('-updatedAt');
+  res.json(layers);
+});
+
+// Update a layer
+app.put('/api/user-layers/:id', isAuthenticated, async (req, res) => {
+  const { name, geojson } = req.body;
+  const layer = await UserLayer.findOne({ _id: req.params.id, userId: req.user._id });
+  if (!layer) return res.status(404).json({ message: 'Layer not found' });
+  if (name !== undefined) layer.name = name;
+  if (geojson !== undefined) layer.geojson = geojson;
+  layer.updatedAt = new Date();
+  await layer.save();
+  res.json(layer);
+});
+
+// Delete a layer
+app.delete('/api/user-layers/:id', isAuthenticated, async (req, res) => {
+  const layer = await UserLayer.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+  if (!layer) return res.status(404).json({ message: 'Layer not found' });
+  res.json({ success: true });
 });
 
 // Start Server

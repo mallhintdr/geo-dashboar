@@ -10,6 +10,7 @@ import React, {
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Spinner, Container } from 'react-bootstrap';
 import { useAuth } from './AuthContext';
+import axios from 'axios';
 
 import Header from './App/Header';
 import Modals from './App/Modals';
@@ -70,6 +71,11 @@ const App = () => {
   const [showShiftForm, setShowShiftForm] = useState(false);
   const [canShiftMauza, setCanShiftMauza] = useState(false);
   const geoJsonLayerRef = useRef(null);
+  const drawnItemsRef = useRef(null);
+  const [drawnLayerData, setDrawnLayerData] = useState(null);
+  const [userLayers, setUserLayers] = useState([]);
+  const [layerToLoad, setLayerToLoad] = useState(null);
+  const [editingLayer, setEditingLayer] = useState(null);
 
   // Save map view (center/zoom) to restore after GeoJSON reload
   const [restoreView, setRestoreView] = useState(null);
@@ -161,6 +167,64 @@ const App = () => {
     setShowGoToForm(false);
     mapRef.current?.flyTo([lat, lng], 18, { animate: true, duration: 1.2 });
   };
+const handleDrawnLayerChange = useCallback((data) => {
+    setDrawnLayerData(data);
+  }, []);
+
+  const fetchUserLayers = useCallback(async () => {
+    if (!user) return;
+    try {
+      const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/user-layers`, { withCredentials: true });
+      setUserLayers(res.data);
+    } catch (err) {
+      console.error('Failed to fetch user layers', err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchUserLayers();
+  }, [fetchUserLayers]);
+
+  const handleSaveLayer = async () => {
+    if (!drawnLayerData || !drawnLayerData.features?.length) return;
+    const name = prompt('Layer name?', editingLayer?.name || '');
+    if (!name) return;
+    try {
+      if (editingLayer) {
+        const res = await axios.put(
+          `${process.env.REACT_APP_API_URL}/api/user-layers/${editingLayer._id}`,
+          { name, geojson: drawnLayerData },
+          { withCredentials: true }
+        );
+        setUserLayers((prev) => prev.map((l) => (l._id === res.data._id ? res.data : l)));
+      } else {
+        const res = await axios.post(
+          `${process.env.REACT_APP_API_URL}/api/user-layers`,
+          { name, geojson: drawnLayerData },
+          { withCredentials: true }
+        );
+        setUserLayers((prev) => [...prev, res.data]);
+      }
+      setEditingLayer(null);
+    } catch (err) {
+      alert('Failed to save layer');
+    }
+  };
+
+  const handleLoadLayer = (layer) => {
+    setEditingLayer(layer);
+    setLayerToLoad(layer.geojson);
+  };
+
+  const handleDeleteLayer = async (layer) => {
+    if (!window.confirm('Delete layer?')) return;
+    try {
+      await axios.delete(`${process.env.REACT_APP_API_URL}/api/user-layers/${layer._id}`, { withCredentials: true });
+      setUserLayers((prev) => prev.filter((l) => l._id !== layer._id));
+    } catch (err) {
+      alert('Failed to delete layer');
+    }
+  };
 
   const handleMapInit = useCallback((map) => {
     mapRef.current = map;
@@ -208,6 +272,11 @@ const App = () => {
         murabbaOptions={murabbaOptions}
         handleMurabbaSelection={setSelectedMurabba}
         setShajraEnabled={setShajraEnabled}
+        onSaveLayer={handleSaveLayer}
+        drawnGeoJson={drawnLayerData}
+        savedLayers={userLayers}
+        onLoadLayer={handleLoadLayer}
+        onDeleteLayer={handleDeleteLayer}
       />
 
       <NavigationMenu
@@ -264,6 +333,9 @@ const App = () => {
                   selectedMauza={selectedMauza}
                   onMapInit={handleMapInit}
                   onGeoJsonReady={handleGeoJsonReady}
+                  onDrawnChange={handleDrawnLayerChange}
+                  drawnItemsRef={drawnItemsRef}
+                  userLayerToLoad={layerToLoad}
                 />
               }
             />

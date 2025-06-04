@@ -5,7 +5,7 @@ import LocateControl from './LocateControl';
 import LayerControl from './LayerControl';
 import DrawControl from './DrawControl';
 import GeoJsonLoader from './Map/GeoJsonLoader';
-import ShiftMouzaForm from './ShiftMouzaForm';  // ← import the form
+import ShiftMouzaForm from './ShiftMouzaForm';
 import './css/GeoJsonLoader.css';
 import './css/DrawControl.css';
 import './css/MapComponent.css';
@@ -81,6 +81,9 @@ const MapComponent = ({
   showClearCacheOption,
   onMapInit,         // passes Leaflet map instance back to App
   onGeoJsonReady,    // <<< NEW: callback once GeoJSON layer is added
+  onDrawnChange,
+  drawnItemsRef: externalDrawnRef,
+  userLayerToLoad,
 }) => {
   /* -------- convenience strings -------- */
   const tehsilStr = user?.tehsil ?? '';
@@ -92,6 +95,12 @@ const MapComponent = ({
   /* -------- refs & local state -------- */
   const mapRef = useRef(null);
   const mustateelLayers = useRef([]);
+
+  // ALWAYS call useRef here, then choose between external vs. internal
+  const internalDrawnRef = useRef(null);
+  const drawnItemsRef = externalDrawnRef || internalDrawnRef;
+
+  const [drawnGeoJson, setDrawnGeoJson] = useState(null);
   const [boundsFit, setBoundsFit] = useState(false);
   const [zoomedMurabba, setZoomedMurabba] = useState(null);
 
@@ -105,10 +114,30 @@ const MapComponent = ({
   const [shajraLayer, setShajraLayer] = useState(null);
   const [shajraOpacity, setShajraOpacity] = useState(1);
   const [shajraExists, setShajraExists] = useState(false);
+  // ← Re-introduced: track visibility toggle
   const [shajraVisible, setShajraVisible] = useState(false);
   const [initialTileBoundsFitted, setInitialTileBoundsFitted] = useState(false);
 
-  /* label GeoJSON for murabba dropdown */
+  const handleDrawnChange = useCallback(
+    (geojson) => {
+      setDrawnGeoJson(geojson);
+      if (typeof onDrawnChange === 'function') {
+        onDrawnChange(geojson);
+      }
+    },
+    [onDrawnChange]
+  );
+
+  useEffect(() => {
+    if (!userLayerToLoad || !drawnItemsRef.current) return;
+    drawnItemsRef.current.clearLayers();
+    L.geoJSON(userLayerToLoad).eachLayer((layer) => {
+      drawnItemsRef.current.addLayer(layer);
+    });
+    handleDrawnChange(drawnItemsRef.current.toGeoJSON());
+  }, [userLayerToLoad, handleDrawnChange, drawnItemsRef]);
+
+  /* -------- label GeoJSON for murabba dropdown -------- */
   const [labelGeoJsonData, setLabelGeoJsonData] = useState(null);
   const [tilesLoaded, setTilesLoaded] = useState(true);
 
@@ -128,20 +157,26 @@ const MapComponent = ({
         let loading = 0;
         const update = () => setTilesLoaded(loading === 0);
 
-        tileLoadingLayers.forEach(layer => {
+        tileLoadingLayers.forEach((layer) => {
           layer.off('loading');
           layer.off('load');
         });
         tileLoadingLayers = [];
 
-        map.eachLayer(layer => {
+        map.eachLayer((layer) => {
           if (layer instanceof L.TileLayer) {
             tileLoadingLayers.push(layer);
-            layer.on('loading', () => { loading++; update(); });
-            layer.on('load',    () => { loading = Math.max(loading - 1, 0); update(); });
+            layer.on('loading', () => {
+              loading++;
+              update();
+            });
+            layer.on('load', () => {
+              loading = Math.max(loading - 1, 0);
+              update();
+            });
 
             if (layer._tiles) {
-              const tilesLeft = Object.values(layer._tiles).filter(t => !t.loaded).length;
+              const tilesLeft = Object.values(layer._tiles).filter((t) => !t.loaded).length;
               if (tilesLeft === 0) setTilesLoaded(true);
             }
           }
@@ -161,9 +196,9 @@ const MapComponent = ({
             width: document.querySelector('.map-container')?.offsetWidth || 1200,
             style: {
               transform: 'scale(1.2)',
-              transformOrigin: 'top left'
-            }
-          }
+              transformOrigin: 'top left',
+            },
+          },
         });
 
         screenshotControl.addTo(map);
@@ -178,7 +213,7 @@ const MapComponent = ({
 
       return () => {
         map.off('layeradd', onLayerAdd);
-        tileLoadingLayers.forEach(layer => {
+        tileLoadingLayers.forEach((layer) => {
           layer.off('loading');
           layer.off('load');
         });
@@ -388,7 +423,7 @@ const MapComponent = ({
   }, [dataMode, selectedMurabba, labelGeoJsonData, zoomedMurabba]);
 
   /* ------------------------------------------------------------------
-   * NEW: animate to newest Go-To marker (once per addition)
+   * Animate to newest Go-To marker (once per addition)
    * ---------------------------------------------------------------- */
   useEffect(() => {
     if (!mapRef.current || goToMarkers.length === 0) return;
@@ -397,7 +432,7 @@ const MapComponent = ({
   }, [goToMarkers]);
 
   /* ------------------------------------------------------------------
-   * NEW: stable callback for GeoJsonLoader
+   * Stable callback for GeoJsonLoader
    * ---------------------------------------------------------------- */
   const stableGeoJsonReady = useCallback(
     (layer) => {
@@ -429,7 +464,7 @@ const MapComponent = ({
 
         <LocateControl />
         <LayerControl />
-        <DrawControl />
+        <DrawControl drawnItemsRef={drawnItemsRef} onDrawnChange={handleDrawnChange} />
 
         {dataMode === 'geojson-db' && (
           <GeoJsonLoader
