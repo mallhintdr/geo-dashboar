@@ -14,6 +14,11 @@ import Compass from './CompassControl';
 import L from 'leaflet';
 import { openDB } from 'idb';
 import 'leaflet-simple-map-screenshoter';
+import {
+  addMeasurementLabels,
+  adjustTooltipVisibility,
+  adjustTooltipSize,
+} from './measurementUtils';
 
 /* ---------- custom marker icon ---------- */
 const customIcon = new L.Icon({
@@ -128,9 +133,17 @@ const MapComponent = ({
     [onDrawnChange]
   );
 
- useEffect(() => {
+  const measurementLabelsRef = useRef(new Map());
+
+  useEffect(() => {
     if (!userLayerToLoad || !drawnItemsRef.current) return;
+    const map = mapRef.current;
     drawnItemsRef.current.clearLayers();
+
+    measurementLabelsRef.current.forEach((labels) => {
+      labels.forEach((lbl) => map && map.removeLayer(lbl));
+    });
+    measurementLabelsRef.current = new Map();
 
     const styleFeature = (feature) => {
       const type = feature.geometry?.type;
@@ -148,9 +161,29 @@ const MapComponent = ({
       pointToLayer: (feature, latlng) => L.marker(latlng),
     }).eachLayer((layer) => {
       drawnItemsRef.current.addLayer(layer);
+      if (map) addMeasurementLabels(layer, map, measurementLabelsRef.current);
     });
 
     handleDrawnChange(drawnItemsRef.current.toGeoJSON());
+
+    if (map && drawnItemsRef.current.getLayers().length) {
+      const b = drawnItemsRef.current.getBounds();
+      if (b.isValid()) map.fitBounds(b);
+    }
+
+    const onZoom = () => {
+      const z = map.getZoom();
+      adjustTooltipVisibility(measurementLabelsRef.current, z);
+      adjustTooltipSize(measurementLabelsRef.current, z);
+    };
+    if (map) {
+      map.on('zoomend', onZoom);
+      onZoom();
+    }
+
+    return () => {
+      if (map) map.off('zoomend', onZoom);
+    };
   }, [userLayerToLoad, handleDrawnChange, drawnItemsRef]);
 
   /* -------- label GeoJSON for murabba dropdown -------- */
@@ -476,9 +509,12 @@ const MapComponent = ({
         style={{ height: '100%', width: '100%' }}
         whenCreated={onMapInit}
       >
+        {/* 1) Render LocateControl first so it appears at the very top-left */}
+        <LocateControl />
+
+        {/* 2) Then MapUpdater adds the screenshot button immediately below */}
         <MapUpdater mapRef={mapRef} setTilesLoaded={setTilesLoaded} />
 
-        <LocateControl />
         <LayerControl />
         <DrawControl drawnItemsRef={drawnItemsRef} onDrawnChange={handleDrawnChange} />
 

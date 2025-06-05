@@ -3,7 +3,7 @@ import { useMap } from "react-leaflet";
 import L from "leaflet";
 import { handleMurabbaClick } from "./geoJsonTransform";
 import { bindMurabbaTooltip } from "./bindTooltips";
-import "./GeoJsonLoader.css";
+import "../css/GeoJsonLoader.css";
 
 const GeoJsonLoader = ({
   geoJsonUrl,

@@ -108,11 +108,11 @@ const Header = ({
           )}
         </div>
         {/* Right side: Murabba dropdown & user profile */}
-        <div className="navbar-right d-flex align-items-center ms-auto">␊
+        <div className="navbar-right d-flex align-items-center ms-auto">
           {user && (
             <Dropdown>
-              <Dropdown.Toggle variant="outline-light" id="murabba-dropdown" className="rounded-dropdown">␊
-                {selectedMurabba || 'Select Murabba'}␊
+              <Dropdown.Toggle variant="outline-light" id="murabba-dropdown" className="rounded-dropdown">
+                {selectedMurabba || 'Select Murabba'}
               </Dropdown.Toggle>
               <Dropdown.Menu>
                 <FormControl

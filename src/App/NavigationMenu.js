@@ -26,7 +26,8 @@ const NavigationMenu = ({
     handleMenuToggle();
   };
 
-  const [showLayers, setShowLayers] = useState(false);
+ const [showLayers, setShowLayers] = useState(false);
+  const [showLoadList, setShowLoadList] = useState(false);
 
   return (
     <Offcanvas show={showMenu} onHide={handleMenuToggle} placement="start">
@@ -65,7 +66,7 @@ const NavigationMenu = ({
           {/* Layer management */}
           {user && (
             <>
-              <Nav.Link onClick={() => setShowLayers(v => !v)}>
+<Nav.Link onClick={() => setShowLayers(v => !v)}>
                 📁 Layers {showLayers ? '▲' : '▼'}
               </Nav.Link>
               {showLayers && (
@@ -80,31 +81,35 @@ const NavigationMenu = ({
                   >
                     💾 Save Current
                   </Nav.Link>
-                  {savedLayers.length > 0 ? (
-                    savedLayers.map(layer => (
-                      <Nav.Link
-                        key={layer._id}
-                        onClick={() => {
-                          onLoadLayer(layer);
-                          handleMenuToggle();
-                        }}
-                      >
-                        {layer.name}
-                        <span
-                          onClick={e => {
-                            e.stopPropagation();
-                            onDeleteLayer(layer);
-                          }}
-                          style={{ float: 'right' }}
-                        >
-                          🗑
-                        </span>
-                      </Nav.Link>
-                    ))
-                  ) : (
-                    <Nav.Item style={{ paddingLeft: '1rem' }}>
-                      No Layers
-                    </Nav.Item>
+                  <Nav.Link onClick={() => setShowLoadList(v => !v)}>
+                    📂 Load {showLoadList ? '▲' : '▼'}
+                  </Nav.Link>
+                  {showLoadList && (
+                    <div style={{ marginLeft: '1rem' }}>
+                      {savedLayers.length > 0 ? (
+                        savedLayers.map(layer => (
+                          <div key={layer._id} style={{ marginBottom: '4px' }}>
+                            <span>{layer.name}</span>
+                            <button
+                              style={{ marginLeft: '6px' }}
+                              onClick={() => { onLoadLayer(layer); handleMenuToggle(); }}
+                            >
+                              Load
+                            </button>
+                            <button
+                              style={{ marginLeft: '6px' }}
+                              onClick={() => onDeleteLayer(layer)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        ))
+                      ) : (
+                        <Nav.Item style={{ paddingLeft: '1rem' }}>
+                          No Layers
+                        </Nav.Item>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
