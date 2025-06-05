@@ -291,7 +291,7 @@ app.get('/api/geojson/:tehsil/:mauza', async (req, res) => {
 
 // User login
 app.post('/login', async (req, res) => {
-  const { userId, password } = req.body;
+    const { userId, password } = req.body;
 
   try {
     // 1) Lookup user
@@ -347,6 +347,39 @@ app.post('/login', async (req, res) => {
   }
 });
 
+// Admin: login as another user
+app.post('/admin/login-as/:userId', isAuthenticated, isAdmin, async (req, res) => {
+  try {
+    const target = await User.findOne({ userId: req.params.userId });
+    if (!target) return res.status(404).json({ message: 'User not found' });
+
+    const adminToken = req.cookies.authToken;
+    const token = jwt.sign({ userId: target.userId }, SECRET_KEY, { expiresIn: '30d' });
+
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // 30 days
+    target.sessions = target.sessions.filter(s => s.start.getTime() >= cutoff);
+    target.sessions.push({ start: new Date(), ipAddress: req.ip });
+    await target.save();
+
+    res
+      .cookie('authToken', token, {
+        httpOnly: true,
+        secure:   process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge:   30 * 24 * 60 * 60 * 1000
+      })
+      .cookie('adminAuthToken', adminToken, {
+        httpOnly: true,
+        secure:   process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge:   30 * 24 * 60 * 60 * 1000
+      })
+      .json({ message: 'Impersonation successful' });
+  } catch (err) {
+    console.error('login-as error:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 // Forgot password (sends link)
 app.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
@@ -449,7 +482,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 });
 
 // Logout
-app.post('/logout', isAuthenticated, async (req, res) => {
+app.post('/logout', isAuthenticated, async (req, res) => {  
   try {
     const user = await User.findOne({ userId: req.user.userId });
     if (user && user.sessions.length) {
@@ -463,8 +496,21 @@ app.post('/logout', isAuthenticated, async (req, res) => {
   } catch (error) {
     console.error('Logout session error:', error);
   } finally {
-    res.clearCookie('authToken', { httpOnly: true, path: '/' })
-       .json({ message: 'Logout successful' });
+    const adminToken = req.cookies.adminAuthToken;
+    if (adminToken) {
+      res
+        .clearCookie('adminAuthToken', { httpOnly: true, path: '/' })
+        .cookie('authToken', adminToken, {
+          httpOnly: true,
+          secure:   process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge:   30 * 24 * 60 * 60 * 1000
+        })
+        .json({ message: 'Logout successful', adminRestored: true });
+    } else {
+      res.clearCookie('authToken', { httpOnly: true, path: '/' })
+         .json({ message: 'Logout successful' });
+    }
   }
 });
 

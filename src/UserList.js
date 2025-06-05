@@ -6,7 +6,6 @@ import {
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 import { useNavigate } from 'react-router-dom';
-
 import './styles/global.css';
 import './styles/table.css';
 import './styles/modal.css';
@@ -36,7 +35,7 @@ const UserList = () => {
   const [filters,        setFilters]        = useState({});
   const [sortConfig,     setSortConfig]     = useState({});
 
-  const { logout } = useAuth();        /* eslint-disable-line no-unused-vars */
+  const { logout, loginAs } = useAuth();        /* eslint-disable-line no-unused-vars */
   const navigate  = useNavigate();
 
   /* -------------- load users -------------- */
@@ -144,6 +143,14 @@ const UserList = () => {
       direction: p.key === key && p.direction === 'asc' ? 'desc' : 'asc'
     }));
 
+  const handleLoginAs = async (uid) => {
+    try {
+      await loginAs(uid);
+    } catch (err) {
+      console.error('Login as user failed:', err);
+      setError('Failed to login as user.');
+    }
+  };
   /* =====================================================
      Rendering
   ===================================================== */
@@ -240,6 +247,11 @@ const UserList = () => {
                     <Button variant="danger"
                             onClick={() => { setUserToDelete(u.userId); setShowDeleteModal(true); }}>
                       Delete
+                    </Button>
+                    <Button variant="secondary"
+                            title="Login as User"
+                            onClick={() => handleLoginAs(u.userId)}>
+                      Login
                     </Button>
                   </ButtonGroup>
                 </td>

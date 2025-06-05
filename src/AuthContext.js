@@ -115,16 +115,33 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post(`${process.env.REACT_APP_API_URL}/logout`, {}, { withCredentials: true });
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/logout`, {}, { withCredentials: true });
       document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       setUser(null);
       localStorage.removeItem('user');
       setWarning(null); // <-- Remove warning on logout
-      navigate('/login');
+
+      if (res.data?.adminRestored) {
+        await fetchUserProfile();
+        navigate('/');
+      } else {
+        navigate('/login');
+      }
     } catch (error) {
       console.error('Logout failed:', error);
     }
   };
+
+  const loginAs = async (userId) => {
+    try {
+      await axios.post(`${process.env.REACT_APP_API_URL}/admin/login-as/${encodeURIComponent(userId)}`, {}, { withCredentials: true });
+      await fetchUserProfile();
+      navigate('/');
+    } catch (error) {
+      console.error('Login as user failed:', error);
+    }
+  };
+
 
   const changePassword = async (oldPassword, newPassword) => {
     try {
@@ -151,6 +168,7 @@ export const AuthProvider = ({ children }) => {
         userType: user?.userType,
         login,
         logout,
+        loginAs,
         changePassword,
         loading,
         error,
