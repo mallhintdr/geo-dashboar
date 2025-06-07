@@ -14,6 +14,8 @@ import Compass from './CompassControl';
 import L from 'leaflet';
 import { openDB } from 'idb';
 import 'leaflet-simple-map-screenshoter';
+import 'leaflet-rotate';
+
 import {
   addMeasurementLabels,
   adjustTooltipVisibility,
@@ -508,6 +510,7 @@ const MapComponent = ({
         maxZoom={21}
         style={{ height: '100%', width: '100%' }}
         whenCreated={onMapInit}
+        rotate={true}
       >
         {/* 1) Render LocateControl first so it appears at the very top-left */}
         <LocateControl />

@@ -3,7 +3,7 @@ import { useMap } from "react-leaflet";
 import L from "leaflet";
 import throttle from "lodash/throttle";
 import "./css/CompassControl.css";
-import compassIconActive from "./images/north-static.png"; // Active compass icon
+import compassIconActive from "./images/north.png"; // Active compass icon
 import compassIconInactive from "./images/north-static.png"; // Inactive/static north icon
 
 // Extend Leaflet Control for a compass
@@ -23,6 +23,9 @@ const CompassControl = L.Control.extend({
       requestAnimationFrame(() => {
         compassDiv.style.transform = `rotate(${deg}deg)`;
       });
+      if (typeof map.setBearing === "function") {
+        map.setBearing((-deg + 360) % 360);
+      }
     };
 
     // Compute heading and rotate only the compass control
@@ -76,7 +79,11 @@ const CompassControl = L.Control.extend({
         orientationHandler = null;
         compassDiv.style.transform = "rotate(0deg)";
         compassDiv.style.backgroundImage = `url('${compassIconInactive}')`;
-      } else {
+      }       
+        if (typeof map.setBearing === "function") {
+          map.setBearing(0);
+        }
+      else {
         compassDiv.style.backgroundImage = `url('${compassIconActive}')`;
         await fetchDeclination();
         const perm = await requestOrientationPermission();
@@ -97,6 +104,13 @@ const CompassControl = L.Control.extend({
       })
     );
 
+    // Auto-enable on mobile devices when permission is not required
+    if (
+      /Mobi|Android/i.test(navigator.userAgent) &&
+      typeof DeviceOrientationEvent.requestPermission !== "function"
+    ) {
+      toggleCompass().catch(() => {});
+    }
     return compassDiv;
   },
 });
