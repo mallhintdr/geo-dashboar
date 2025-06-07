@@ -70,10 +70,11 @@ const userSchema = new mongoose.Schema({
   email: { type: String, unique: true, sparse: true },
   resetPasswordToken: { type: String },
   resetPasswordExpires: { type: Date },
-  fee: { type: Number, default: 1000 },
+ fee: { type: Number, default: 1000 },
   renewalHistory: { type: [renewalEntrySchema], default: [] },
   renewalCount: { type: Number, default: 0 },
-  sessions: [sessionSchema]
+  sessions: [sessionSchema],
+  lastActive: Date
 });
 
 // --- GeoJSON Schema & Model ---
@@ -330,6 +331,7 @@ app.post('/login', async (req, res) => {
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // 30 days
     user.sessions = user.sessions.filter(s => s.start.getTime() >= cutoff);
     user.sessions.push({ start: new Date(), ipAddress: req.ip });
+    user.lastActive = new Date();
     await user.save();
 
     // 6) Set cookie & return success
@@ -359,6 +361,7 @@ app.post('/admin/login-as/:userId', isAuthenticated, isAdmin, async (req, res) =
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // 30 days
     target.sessions = target.sessions.filter(s => s.start.getTime() >= cutoff);
     target.sessions.push({ start: new Date(), ipAddress: req.ip });
+    target.lastActive = new Date();
     await target.save();
 
     res
@@ -485,13 +488,16 @@ app.post('/api/auth/reset-password', async (req, res) => {
 app.post('/logout', isAuthenticated, async (req, res) => {  
   try {
     const user = await User.findOne({ userId: req.user.userId });
-    if (user && user.sessions.length) {
-      const lastSession = user.sessions[user.sessions.length - 1];
-      if (!lastSession.end) {
-        lastSession.end = new Date();
-        lastSession.duration = Math.ceil((lastSession.end - lastSession.start) / 1000);
-        await user.save();
+    if (user) {
+      if (user.sessions.length) {
+        const lastSession = user.sessions[user.sessions.length - 1];
+        if (!lastSession.end) {
+          lastSession.end = new Date();
+          lastSession.duration = Math.ceil((lastSession.end - lastSession.start) / 1000);
+        }
       }
+      user.lastActive = null;
+      await user.save();
     }
   } catch (error) {
     console.error('Logout session error:', error);
@@ -586,6 +592,20 @@ app.get('/profile', isAuthenticated, async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch profile:', error.message);
     res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Heartbeat – update user's last active timestamp
+app.post('/heartbeat', isAuthenticated, async (req, res) => {
+  try {
+    await User.updateOne(
+      { userId: req.user.userId },
+      { lastActive: new Date() }
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Heartbeat error', err);
+    res.status(500).json({ error: 'Failed to record heartbeat' });
   }
 });
 
@@ -697,12 +717,8 @@ app.delete('/users/:userId', isAuthenticated, isAdmin, async (req, res) => {
 app.get('/stats', async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
-    const onlineAgg = await User.aggregate([
-      { $unwind: '$sessions' },
-      { $match: { 'sessions.end': { $exists: false } } },
-      { $count: 'onlineCount' }
-    ]);
-    const totalOnline = onlineAgg[0]?.onlineCount || 0;
+    const activeCutoff = new Date(Date.now() - 2 * 60 * 1000);
+    const totalOnline = await User.countDocuments({ lastActive: { $gte: activeCutoff } });
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const sessions = await User.aggregate([
       { $unwind: '$sessions' },
@@ -759,22 +775,22 @@ app.get('/api/mauza-list/:tehsil', async (req, res) => {
 ------------------------------------------------------------------ */
 app.get('/online-users', isAuthenticated, async (_req, res) => {
   try {
-    const list = await User.aggregate([
-      { $unwind: '$sessions' },
-      { $match:  { 'sessions.end': { $exists: false } } },
-      {
-        $project: {
-          _id: 0,
-          userName:         1,
-          userId:           1,
-          tehsil:           1,
-          subscriptionType: 1,
-          ipAddress:        '$sessions.ipAddress',
-          start:            '$sessions.start'
-        }
-      },
-      { $sort: { start: -1 } }
-    ]);
+    const cutoff = new Date(Date.now() - 2 * 60 * 1000);
+    const users  = await User.find({ lastActive: { $gte: cutoff } });
+
+    const list = users.map(u => {
+      const last = u.sessions[u.sessions.length - 1] || {};
+      return {
+        userName:         u.userName,
+        userId:           u.userId,
+        tehsil:           u.tehsil,
+        subscriptionType: u.subscriptionType,
+        ipAddress:        last.ipAddress,
+        start:            last.start,
+        lastActive:       u.lastActive
+      };
+    }).sort((a, b) => (b.start || 0) - (a.start || 0));
+
     res.json(list);
   } catch (err) {
     console.error('online-users error', err);

@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }) => {
   };
 
 
-  const changePassword = async (oldPassword, newPassword) => {
+   const changePassword = async (oldPassword, newPassword) => {
     try {
       await axios.post(
         `${process.env.REACT_APP_API_URL}/change-password`,
@@ -160,6 +160,21 @@ export const AuthProvider = ({ children }) => {
       throw new Error('Failed to change password.');
     }
   };
+
+  // Send heartbeat every minute when logged in
+  useEffect(() => {
+    if (!user) return;
+    const send = async () => {
+      try {
+        await axios.post(`${process.env.REACT_APP_API_URL}/heartbeat`, {}, { withCredentials: true });
+      } catch (err) {
+        console.error('Heartbeat failed:', err);
+      }
+    };
+    send();
+    const id = setInterval(send, 60000);
+    return () => clearInterval(id);
+  }, [user]);
 
   return (
     <AuthContext.Provider
