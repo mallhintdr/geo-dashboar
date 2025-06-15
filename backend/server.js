@@ -96,6 +96,19 @@ const userLayerSchema = new mongoose.Schema({
 });
 const UserLayer = mongoose.model('UserLayer', userLayerSchema);
 
+// --- LandRecord Schema & Model ---
+const landRecordSchema = new mongoose.Schema({
+  district: String,
+  tehsil: String,
+  mouza: String,
+  khewatId: Number,
+  khewatNo: String,
+  khasraIds: [Number],
+  owners: [mongoose.Schema.Types.Mixed]
+});
+
+const LandRecord = mongoose.model('LandRecord', landRecordSchema);
+
 
 // Helper: Calculate End Date, Days Remaining, and Status
 const calculateDatesAndStatus = (startDate, subscriptionType) => {
@@ -903,6 +916,56 @@ app.delete('/api/user-layers/:id', isAuthenticated, async (req, res) => {
   const layer = await UserLayer.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
   if (!layer) return res.status(404).json({ message: 'Layer not found' });
   res.json({ success: true });
+});
+/* ------------------------------------------------------------------
+   Land Record Routes
+------------------------------------------------------------------ */
+
+// List available tehsils
+app.get('/api/landrecords/tehsils', isAuthenticated, async (_req, res) => {
+  try {
+    const tehsils = await LandRecord.distinct('tehsil');
+    res.json(tehsils.sort((a, b) => a.localeCompare(b)));
+  } catch (err) {
+    console.error('landrecords/tehsils error:', err);
+    res.status(500).json({ error: 'Unable to fetch tehsils' });
+  }
+});
+
+// List mauzas for a tehsil
+app.get('/api/landrecords/mauzas/:tehsil', isAuthenticated, async (req, res) => {
+  try {
+    const mauzas = await LandRecord.distinct('mouza', { tehsil: req.params.tehsil });
+    res.json(mauzas.sort((a, b) => a.localeCompare(b)));
+  } catch (err) {
+    console.error('landrecords/mauzas error:', err);
+    res.status(500).json({ error: 'Unable to fetch mauzas' });
+  }
+});
+
+// List khewats for a mauza
+app.get('/api/landrecords/khewats/:tehsil/:mauza', isAuthenticated, async (req, res) => {
+  const { tehsil, mauza } = req.params;
+  try {
+    const recs = await LandRecord.find({ tehsil, mauza }).select('khewatId khewatNo -_id').sort('khewatNo');
+    res.json(recs);
+  } catch (err) {
+    console.error('landrecords/khewats error:', err);
+    res.status(500).json({ error: 'Unable to fetch khewats' });
+  }
+});
+
+// Full details for a khewat
+app.get('/api/landrecords/details/:khewatId', isAuthenticated, async (req, res) => {
+  const khewatId = parseInt(req.params.khewatId, 10);
+  try {
+    const rec = await LandRecord.findOne({ khewatId });
+    if (!rec) return res.status(404).json({ message: 'Record not found' });
+    res.json(rec);
+  } catch (err) {
+    console.error('landrecords/details error:', err);
+    res.status(500).json({ error: 'Unable to fetch record' });
+  }
 });
 
 // Start Server

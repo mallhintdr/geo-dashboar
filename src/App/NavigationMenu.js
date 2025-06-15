@@ -32,7 +32,7 @@ const NavigationMenu = ({
   return (
     <Offcanvas show={showMenu} onHide={handleMenuToggle} placement="start">
       <Offcanvas.Header closeButton>
-        <Offcanvas.Title>Navigation</Offcanvas.Title>
+        <Offcanvas.Title>Geo Map Menu</Offcanvas.Title>
       </Offcanvas.Header>
 
       <Offcanvas.Body style={{ minWidth: 220, maxWidth: 300 }}>
@@ -60,8 +60,11 @@ const NavigationMenu = ({
             <Nav.Link onClick={() => go('/login')}>🔐 Login</Nav.Link>
          )}
 
-          {/* Go-to-location tool */}
+                   {/* Go-to-location tool */}
           <Nav.Link onClick={onGoToLocationClick}>📍 Go To Location</Nav.Link>
+
+          {/* Land records */}
+          <Nav.Link onClick={() => go('/land-records')}>📑 Land Records</Nav.Link>
 
           {/* Layer management */}
           {user && (
