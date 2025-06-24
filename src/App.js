@@ -26,7 +26,6 @@ import Statistics from './Statistics';
 import Login from './Login';
 import SubscriptionManagement from './SubscriptionManagement';
 import ResetPassword from './ResetPassword';
-import LandRecords from './LandRecords';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/global.css';
@@ -349,9 +348,7 @@ const handleDrawnLayerChange = useCallback((data) => {
               path="/subscription-management"
               element={<SubscriptionManagement />}
             />
-            <Route path="/land-records" element={<LandRecords />} />
-
-            <Route path="/reset-password" element={<ResetPassword />} />
+             <Route path="/reset-password" element={<ResetPassword />} />
           </Routes>
         </Suspense>
       )}
