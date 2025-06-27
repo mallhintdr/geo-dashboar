@@ -396,6 +396,20 @@ app.post('/admin/login-as/:userId', isAuthenticated, isAdmin, async (req, res) =
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// Public: Check if a userId exists (for Forgot Password flow)
+app.get('/api/public/check-userid/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    if (!userId) return res.json({ exists: false });
+
+    const exists = await User.exists({ userId });
+    res.json({ exists: !!exists });
+  } catch (error) {
+    console.error('check-userid error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 // Forgot password (sends link)
 app.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
