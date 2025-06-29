@@ -60,7 +60,7 @@ const EditProfileForm = ({ show, onHide, user }) => {
               name="userName"
               value={formData.userName}
               onChange={handleChange}
-              required
+              required disabled={Boolean(user?.email)}
             />
           </Form.Group>
 
@@ -73,7 +73,7 @@ const EditProfileForm = ({ show, onHide, user }) => {
               onChange={handleChange}
               placeholder="example@email.com"
               pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
-              required
+              required disabled={Boolean(user?.email)}
             />
           </Form.Group>
 

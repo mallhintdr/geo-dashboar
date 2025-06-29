@@ -14,10 +14,8 @@ const Login = () => {
 
   // Forgot Password modal states
   const [showForgot, setShowForgot] = useState(false);
-  const [forgotEmail, setForgotEmail] = useState('');
   const [forgotMsg, setForgotMsg] = useState(null);
   const [forgotLoading, setForgotLoading] = useState(false);
-
   // For checking user existence before enabling forgot password
   const [forgotUserWarning, setForgotUserWarning] = useState(null);
   const [checkingUser, setCheckingUser] = useState(false);
@@ -102,12 +100,11 @@ const checkUserIdExists = async () => {
     setForgotLoading(true);
     try {
       const apiBaseUrl = process.env.REACT_APP_API_URL || '';
-      await axios.post(`${apiBaseUrl}/forgot-password`, { email: forgotEmail });
+      await axios.post(`${apiBaseUrl}/forgot-password`, { userId: formData.userId });
       setForgotMsg({
         type: 'success',
-        text: 'If this email is registered, a reset link has been sent. Please check your inbox.',
+        text: 'If this user ID exists, a reset link has been sent to the registered email.',
       });
-      setForgotEmail('');
     } catch (err) {
       setForgotMsg({
         type: 'danger',
@@ -197,19 +194,10 @@ const checkUserIdExists = async () => {
         <Modal.Header closeButton>
           <Modal.Title>Forgot Password</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+         <Modal.Body>
           {forgotMsg && <Alert variant={forgotMsg.type}>{forgotMsg.text}</Alert>}
           <Form onSubmit={handleForgot}>
-            <Form.Group className="mb-3">
-              <Form.Label>Enter your registered email address</Form.Label>
-              <Form.Control
-                type="email"
-                value={forgotEmail}
-                onChange={e => setForgotEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-              />
-            </Form.Group>
+            <p>A password reset link will be sent to the registered email for this user ID.</p>
             <Button
               variant="primary"
               type="submit"

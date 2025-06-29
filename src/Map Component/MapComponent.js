@@ -198,10 +198,13 @@ const MapComponent = ({
   const MapUpdater = ({ mapRef, setTilesLoaded }) => {
     const map = useMap();
 
-    useEffect(() => {
-      if (!mapRef.current) mapRef.current = map;
+       useEffect(() => {
+      if (!mapRef.current || mapRef.current !== map) {
+        mapRef.current = map;
+        mapRef.current._screenshotControlAdded = false;
+      }
 
-      let screenshotControl = null;
+      let screenshotControl = map.screenshotControl || null;
       let tileLoadingLayers = [];
 
       function setupTileListeners() {
@@ -252,7 +255,7 @@ const MapComponent = ({
           },
         });
 
-        screenshotControl.addTo(map);
+       screenshotControl.addTo(map);
         map.screenshotControl = screenshotControl;
         mapRef.current._screenshotControlAdded = true;
       }
@@ -268,18 +271,46 @@ const MapComponent = ({
           layer.off('loading');
           layer.off('load');
         });
+        if (screenshotControl) {
+          map.removeControl(screenshotControl);
+          map.screenshotControl = null;
+          mapRef.current._screenshotControlAdded = false;
+        }
       };
     }, [map, setTilesLoaded]);
 
     return null;
   };
 
-  /* =====================================================================
+   /* =====================================================================
    *  Decide mode (geojson-only vs shajra) whenever Mauza changes
+   *  -> check for existence of shajra metadata and switch modes
    * =================================================================== */
   useEffect(() => {
-    if (tehsilStr && selectedMauza) setDataMode('geojson-db');
-  }, [tehsilStr, selectedMauza]);
+    if (!tehsilStr || !selectedMauza) return;
+    const metaPath = `/Shajra Parcha/${tehsilStr}/${mauzaStr}.json`;
+    const check = async () => {
+      try {
+        const res = await fetch(metaPath);
+        const isJson = (res.headers.get('Content-Type') || '').includes('application/json');
+        if (res.ok && isJson) {
+          setDataMode('shajra');
+          setShajraExists(true);
+          setShajraVisible(true);
+          console.log(`Shajra metadata found for ${mauzaStr} – auto-loading`);
+        } else {
+          setDataMode('geojson-db');
+          setShajraExists(false);
+          setShajraVisible(false);
+        }
+      } catch {
+        setDataMode('geojson-db');
+        setShajraExists(false);
+        setShajraVisible(false);
+      }
+    };
+    check();
+  }, [tehsilStr, selectedMauza, mauzaStr]);
 
   /* =====================================================================
    *  SHAJRA mode – check for metadata to auto-toggle layer
@@ -293,28 +324,7 @@ const MapComponent = ({
       ? `/Shajra Parcha/${tehsilStr}/${mauzaStr}.geojson`
       : null;
 
-  useEffect(() => {
-    if (dataMode !== 'shajra') return;
-    const checkExists = async () => {
-      try {
-        const metaPath = `/Shajra Parcha/${tehsilStr}/${mauzaStr}.json`;
-        const res = await fetch(metaPath);
-        if (res.ok && (res.headers.get('Content-Type') || '').includes('application/json')) {
-          setShajraExists(true);
-          setShajraVisible(true);
-          console.log(`Shajra metadata found for ${mauzaStr} – auto-loading`);
-        } else {
-          setShajraExists(false);
-          setShajraVisible(false);
-        }
-      } catch {
-        setShajraExists(false);
-        setShajraVisible(false);
-      }
-    };
-    checkExists();
-  }, [dataMode, tehsilStr, mauzaStr]);
-
+  
   /* Reset shajra layer on Mauza change */
   useEffect(() => {
     if (dataMode !== 'shajra') return;
