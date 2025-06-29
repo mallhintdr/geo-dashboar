@@ -412,14 +412,14 @@ app.get('/api/public/check-userid/:userId', async (req, res) => {
 });
 // Forgot password (sends link)
 app.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  if (!email) return res.status(400).json({ message: 'Email is required' });
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ message: 'User ID is required' });
 
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      // Always respond success to avoid enumeration
-      return res.json({ message: 'If this email is registered, a reset link has been sent.' });
+    const user = await User.findOne({ userId });
+    if (!user || !user.email) {
+      // Always respond success to avoid user enumeration
+      return res.json({ message: 'If this user exists, a reset link has been sent.' });
     }
 
     // Generate a reset token (valid 1 hour)
@@ -451,7 +451,7 @@ app.post('/forgot-password', async (req, res) => {
       `
     });
 
-    res.json({ message: 'If this email is registered, a reset link has been sent.' });
+res.json({ message: 'If this user exists, a reset link has been sent.' });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ message: 'Failed to send reset email.' });
@@ -569,7 +569,7 @@ app.post('/users/:userId/renew', isAuthenticated, async (req, res) => {
   try {
     const { subscriptionType } = req.body;
     const now = new Date();
-    const user = await User.findOne({ userId: req.params.userId });
+        const user = await User.findOne({ userId: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     user.renewalHistory.push({ date: now, type: subscriptionType });
@@ -700,6 +700,15 @@ app.put('/users/:userId', isAuthenticated, isSelfOrAdmin, async (req, res) => {
 
     const user = await User.findOne({ userId: req.params.userId });
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (
+      req.user.userType !== 'admin' &&
+      'email' in updateData &&
+      user.email &&
+      updateData.email !== user.email
+    ) {
+      return res.status(403).json({ message: 'Email can only be changed by an admin' });
+    }
 
     let isRenewal = false;
     if (
