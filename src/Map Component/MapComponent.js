@@ -95,6 +95,9 @@ const MapComponent = ({
   /* -------- convenience strings -------- */
   const tehsilStr = user?.tehsil ?? '';
   const mauzaStr = selectedMauza ?? '';
+  const encodedBase = encodeURIComponent('Shajra Parcha');
+  const encodedTehsil = encodeURIComponent(tehsilStr);
+  const encodedMauza = encodeURIComponent(mauzaStr);
 
   /* -------- mode: geojson-only | shajra -------- */
   const [dataMode, setDataMode] = useState(null);
@@ -198,7 +201,7 @@ const MapComponent = ({
   const MapUpdater = ({ mapRef, setTilesLoaded }) => {
     const map = useMap();
 
-       useEffect(() => {
+           useEffect(() => {
       if (!mapRef.current || mapRef.current !== map) {
         mapRef.current = map;
         mapRef.current._screenshotControlAdded = false;
@@ -255,9 +258,11 @@ const MapComponent = ({
           },
         });
 
-       screenshotControl.addTo(map);
-        map.screenshotControl = screenshotControl;
-        mapRef.current._screenshotControlAdded = true;
+       map.whenReady(() => {
+          screenshotControl.addTo(map);
+          map.screenshotControl = screenshotControl;
+          mapRef.current._screenshotControlAdded = true;
+        });
       }
 
       const onLayerAdd = (e) => {
@@ -282,16 +287,16 @@ const MapComponent = ({
     return null;
   };
 
-   /* =====================================================================
+    /* =====================================================================
    *  Decide mode (geojson-only vs shajra) whenever Mauza changes
    *  -> check for existence of shajra metadata and switch modes
    * =================================================================== */
   useEffect(() => {
     if (!tehsilStr || !selectedMauza) return;
-    const metaPath = `/Shajra Parcha/${tehsilStr}/${mauzaStr}.json`;
+    const metaPath = `/${encodedBase}/${encodedTehsil}/${encodedMauza}.json`;
     const check = async () => {
       try {
-        const res = await fetch(metaPath);
+        const res = await fetch(metaPath, { method: 'HEAD' });
         const isJson = (res.headers.get('Content-Type') || '').includes('application/json');
         if (res.ok && isJson) {
           setDataMode('shajra');
@@ -317,13 +322,12 @@ const MapComponent = ({
    * =================================================================== */
   const tileUrlTemplate =
     dataMode === 'shajra' && selectedMauza
-      ? `/Shajra Parcha/${tehsilStr}/${mauzaStr}/{z}/{x}/{y}.png`
+      ? `/${encodedBase}/${encodedTehsil}/${encodedMauza}/{z}/{x}/{y}.png`
       : null;
   const labelGeoJsonUrl =
     dataMode === 'shajra' && selectedMauza
-      ? `/Shajra Parcha/${tehsilStr}/${mauzaStr}.geojson`
+      ? `/${encodedBase}/${encodedTehsil}/${encodedMauza}.geojson`
       : null;
-
   
   /* Reset shajra layer on Mauza change */
   useEffect(() => {
@@ -353,7 +357,7 @@ const MapComponent = ({
         });
         tLayer.createTile = (coords, done) => {
           const { x, y, z } = coords;
-          const url = `/Shajra Parcha/${tehsilStr}/${mauzaStr}/${z}/${x}/${y}.png`;
+          const url = `/${encodedBase}/${encodedTehsil}/${encodedMauza}/${z}/${x}/${y}.png`;
           const img = new Image();
           fetchAndCacheTile(url).then((blobUrl) => {
             img.src = blobUrl || url;
@@ -366,7 +370,7 @@ const MapComponent = ({
         setShajraLayer(tLayer);
 
         /* Zoom to metadata bounds once */
-        const metaPath = `/Shajra Parcha/${tehsilStr}/${mauzaStr}.json`;
+        const metaPath = `/${encodedBase}/${encodedTehsil}/${encodedMauza}.json`;
         fetch(metaPath)
           .then((r) =>
             r.ok && (r.headers.get('Content-Type') || '').includes('application/json')
