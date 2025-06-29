@@ -366,10 +366,7 @@ const MapComponent = ({
           });
           return img;
         };
-        tLayer.addTo(map);
-        setShajraLayer(tLayer);
-
-        /* Zoom to metadata bounds once */
+           /* Zoom to metadata bounds once */
         const metaPath = `/${encodedBase}/${encodedTehsil}/${encodedMauza}.json`;
         fetch(metaPath)
           .then((r) =>
@@ -405,17 +402,16 @@ const MapComponent = ({
                 [Math.max(...lats), Math.max(...lngs)],
               ];
             }
-            if (Array.isArray(bounds) && bounds.length === 2) {
-              tLayer.once('load', () => {
-                if (!initialTileBoundsFitted) {
-                  map.fitBounds(bounds);
-                  setInitialTileBoundsFitted(true);
-                  setBoundsFit(true);
-                }
-              });
+            if (Array.isArray(bounds) && bounds.length === 2 && !initialTileBoundsFitted) {
+              map.fitBounds(bounds);
+              setInitialTileBoundsFitted(true);
+              setBoundsFit(true);
             }
           })
           .catch((e) => console.error('Error fetching metadata:', e));
+
+        tLayer.addTo(map);
+        setShajraLayer(tLayer);
       }
     } else if (shajraLayer) {
       map.removeLayer(shajraLayer);
