@@ -658,9 +658,25 @@ app.get('/api/users/search', isAuthenticated, isAdmin, async (req, res) => {
 });
 
 app.get('/api/tehsil-list', async (req, res) => {
+  const fsP = require('fs/promises');
   try {
-    const tehsils = await GeoJson.distinct('tehsil');
-    res.json(tehsils.sort((a, b) => a.localeCompare(b)));
+    const [dbTehsils, geoDirs, tileDirs] = await Promise.all([
+      GeoJson.distinct('tehsil').catch(() => []),
+      fsP.readdir(GEO_ROOT,  { withFileTypes: true }).catch(() => []),
+      fsP.readdir(TILE_ROOT, { withFileTypes: true }).catch(() => [])
+    ]);
+
+    const geoNames  = geoDirs
+      .filter(d => d.isDirectory())
+      .map(d => d.name);
+
+    const tileNames = tileDirs
+      .filter(d => d.isDirectory())
+      .map(d => d.name);
+
+    const names = new Set([...dbTehsils, ...geoNames, ...tileNames]);
+
+    res.json([...names].sort((a, b) => a.localeCompare(b)));
   } catch (err) {
     console.error('tehsil-list error:', err);
     res.status(500).json([]);
