@@ -121,12 +121,13 @@ const MapComponent = ({
   const [geoJsonLayerInstance, setGeoJsonLayerInstance] = useState(null);
 
   /* shajra tile-layer controls */
-  const [shajraLayer, setShajraLayer] = useState(null);
+   const [shajraLayer, setShajraLayer] = useState(null);
   const [shajraOpacity, setShajraOpacity] = useState(1);
   const [shajraExists, setShajraExists] = useState(false);
   // ← Re-introduced: track visibility toggle
   const [shajraVisible, setShajraVisible] = useState(false);
   const [initialTileBoundsFitted, setInitialTileBoundsFitted] = useState(false);
+  const [shajraMeta, setShajraMeta] = useState(null);
 
   const handleDrawnChange = useCallback(
     (geojson) => {
@@ -286,7 +287,6 @@ const MapComponent = ({
 
     return null;
   };
-
     /* =====================================================================
    *  Decide mode (geojson-only vs shajra) whenever Mauza changes
    *  -> check for existence of shajra metadata and switch modes
@@ -294,27 +294,32 @@ const MapComponent = ({
   useEffect(() => {
     if (!tehsilStr || !selectedMauza) return;
     const metaPath = `/${encodedBase}/${encodedTehsil}/${encodedMauza}.json`;
-    const check = async () => {
+    const load = async () => {
+      setShajraMeta(null);
       try {
-        const res = await fetch(metaPath, { method: 'HEAD' });
+        const res = await fetch(metaPath);
         const isJson = (res.headers.get('Content-Type') || '').includes('application/json');
         if (res.ok && isJson) {
+          const data = await res.json();
+          setShajraMeta(data);
           setDataMode('shajra');
           setShajraExists(true);
           setShajraVisible(true);
           console.log(`Shajra metadata found for ${mauzaStr} – auto-loading`);
         } else {
+          setShajraMeta(null);
           setDataMode('geojson-db');
           setShajraExists(false);
           setShajraVisible(false);
         }
       } catch {
+        setShajraMeta(null);
         setDataMode('geojson-db');
         setShajraExists(false);
         setShajraVisible(false);
       }
     };
-    check();
+    load();
   }, [tehsilStr, selectedMauza, mauzaStr]);
 
   /* =====================================================================
@@ -367,16 +372,8 @@ const MapComponent = ({
           return img;
         };
            /* Zoom to metadata bounds once */
-        const metaPath = `/${encodedBase}/${encodedTehsil}/${encodedMauza}.json`;
-        fetch(metaPath)
-          .then((r) =>
-            r.ok && (r.headers.get('Content-Type') || '').includes('application/json')
-              ? r.json()
-              : null
-          )
-          .then((meta) => {
-            if (!meta?.bounds) return;
-            let bounds = meta.bounds;
+        if (shajraMeta?.bounds) {
+          let bounds = shajraMeta.bounds;
             if (typeof bounds === 'string') {
               const p = bounds.split(',').map(Number);
               if (p.length === 4 && p.every((n) => !isNaN(n)))
@@ -407,9 +404,7 @@ const MapComponent = ({
               setInitialTileBoundsFitted(true);
               setBoundsFit(true);
             }
-          })
-          .catch((e) => console.error('Error fetching metadata:', e));
-
+        }
         tLayer.addTo(map);
         setShajraLayer(tLayer);
       }
@@ -426,6 +421,7 @@ const MapComponent = ({
     tehsilStr,
     mauzaStr,
     tileUrlTemplate,
+    shajraMeta,
   ]);
 
   /* update opacity */
