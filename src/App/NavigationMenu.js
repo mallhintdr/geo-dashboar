@@ -9,9 +9,9 @@ const NavigationMenu = ({
   handleMenuToggle,
   onGoToLocationClick,
   clearAppData,
-  onOpenShiftModal,    // Handler for opening the Shift/Transform Mauza form
-  canShiftMauza = false, // Controls visibility of the Shift/Transform Mauza item
-  onSaveLayer,
+  onOpenShiftModal,    // Handler for opening the Shift/Transform Mouza form
+  canShiftMauza = false, // Controls visibility of the Shift/Transform Mouza item (admin only)
+  onSaveLayer = () => {},
   drawnGeoJson,
   savedLayers = [],
   onLoadLayer,
@@ -81,9 +81,9 @@ const NavigationMenu = ({
             </>
           )}
 
-          {/* Shift/Transform Mouza (only if a Mauza is loaded) */}
-          {user && onOpenShiftModal && canShiftMauza && (
-            <Nav.Link
+          {/* Shift/Transform Mouza (admin only, and only if a Mauza is loaded) */}
+          {user?.userType === 'admin' && onOpenShiftModal && canShiftMauza && (
+             <Nav.Link
               onClick={() => {
                 onOpenShiftModal();
                 handleMenuToggle();

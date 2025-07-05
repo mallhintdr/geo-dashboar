@@ -234,7 +234,7 @@ const handleDrawnLayerChange = useCallback((data) => {
   const handleGeoJsonReady = (layer) => {
     console.log("[App] handleGeoJsonReady called. layer:", layer);
     geoJsonLayerRef.current = layer;
-    setCanShiftMauza(!!layer);
+    setCanShiftMauza(!!layer && user?.userType === 'admin');
 
     // DEBUG: log first feature’s coords from the layer
     const features = layer.toGeoJSON().features;
@@ -361,7 +361,7 @@ const handleDrawnLayerChange = useCallback((data) => {
         />
       )}
 
-      {showShiftForm && canShiftMauza && geoJsonLayerRef.current && (
+      {user?.userType === 'admin' && showShiftForm && canShiftMauza && geoJsonLayerRef.current && (
         <ShiftMouzaForm
           tehsil={user.tehsil}
           mauza={selectedMauza}
