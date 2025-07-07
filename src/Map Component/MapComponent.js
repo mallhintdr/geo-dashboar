@@ -4,8 +4,8 @@ import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
 import LocateControl from './LocateControl';
 import LayerControl from './LayerControl';
 import DrawControl from './DrawControl';
-import GeoJsonLoader from './Map/GeoJsonLoader';
-import ShiftMouzaForm from './ShiftMouzaForm';
+import SearchControl from './SearchControl';
+import GeoJsonLoader from './Map/GeoJsonLoader';import ShiftMouzaForm from './ShiftMouzaForm';
 import './css/GeoJsonLoader.css';
 import './css/DrawControl.css';
 import './css/MapComponent.css';
@@ -520,6 +520,7 @@ const MapComponent = ({
       >
         {/* 1) Render LocateControl first so it appears at the very top-left */}
         <LocateControl />
+        <SearchControl />
 
         {/* 2) Then MapUpdater adds the screenshot button immediately below */}
         <MapUpdater mapRef={mapRef} setTilesLoaded={setTilesLoaded} />
