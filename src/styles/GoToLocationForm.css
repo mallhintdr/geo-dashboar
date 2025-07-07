@@ -1,16 +1,18 @@
 .goto-location-form {
+  /* Match placement style of Shift Mouza dialog */
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  top: 0;
+  right: 0;
+  width: 25%;
+  height: 100%;
   z-index: 1000;
-  width: 300px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 1rem;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
 }
 
 .goto-location-form h3 {
