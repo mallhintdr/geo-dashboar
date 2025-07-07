@@ -82,7 +82,7 @@ const NavigationMenu = ({
           )}
 
           {/* Shift/Transform Mouza (only if a Mouza is loaded) */}
-          {user && onOpenShiftModal && canShiftMouza && (
+          {user && onOpenShiftModal && canShiftMauza && (
             <Nav.Link
               onClick={() => {
                 onOpenShiftModal();
