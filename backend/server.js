@@ -851,7 +851,7 @@ app.get('/online-users', isAuthenticated, async (_req, res) => {
 });
 
 // POST: Shift GeoJSON
-app.post('/api/geojson/:tehsil/:mauza/shift', isAuthenticated, isAdmin, async (req, res) => {
+app.post('/api/geojson/:tehsil/:mauza/shift', isAuthenticated, async (req, res) => {
   const { tehsil, mauza } = req.params;
   const { distance, direction } = req.body;
   const meters = parseFloat(distance) * FEET_TO_METERS;
@@ -889,7 +889,7 @@ app.post('/api/geojson/:tehsil/:mauza/shift', isAuthenticated, isAdmin, async (r
 });
 
 // POST: Reset GeoJSON to Default Bounds
-app.post('/api/geojson/:tehsil/:mauza/reset', isAuthenticated, isAdmin, async (req, res) => {
+app.post('/api/geojson/:tehsil/:mauza/reset', isAuthenticated, async (req, res) => {
     const { tehsil, mauza } = req.params;
   const doc = await GeoJson.findOne({ tehsil, mauza });
   if (!doc || !doc.defaultBounds) return res.status(400).json({ message: 'No default bounds set' });
