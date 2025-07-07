@@ -72,7 +72,7 @@ const SearchControl = L.Control.extend({
 const SearchControlComponent = () => {
   const map = useMap();
   useEffect(() => {
-    const control = new SearchControl({ position: 'topright' });
+    const control = new SearchControl({ position: 'topleft' });
     map.addControl(control);
     return () => {
       map.removeControl(control);

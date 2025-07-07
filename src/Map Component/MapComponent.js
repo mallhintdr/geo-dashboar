@@ -518,13 +518,14 @@ const MapComponent = ({
         whenCreated={onMapInit}
         rotate={true}
       >
-        {/* 1) Render LocateControl first so it appears at the very top-left */}
-        <LocateControl />
-        <SearchControl />
-
-        {/* 2) Then MapUpdater adds the screenshot button immediately below */}
+        {/* 1) Render screenshot control first */}
         <MapUpdater mapRef={mapRef} setTilesLoaded={setTilesLoaded} />
 
+        {/* 2) Location control now appears below the capture button */}
+        <LocateControl />
+
+        {/* 3) Search control placed on the left below the capture button */}
+        <SearchControl />
         <LayerControl />
         <DrawControl drawnItemsRef={drawnItemsRef} onDrawnChange={handleDrawnChange} />
 
