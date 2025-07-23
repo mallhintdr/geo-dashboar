@@ -243,29 +243,33 @@ const MapComponent = ({
 
       setupTileListeners();
 
+      //if (!mapRef.current._screenshotControlAdded) {
+      //  screenshotControl = L.simpleMapScreenshoter({
+       //   position: 'topleft',
+         // screenName: `screenshot-${Date.now()}`,
+         // preventCrossOrigin: false,
+        //  domtoimageOptions: {
+        //    bgcolor: '#fff',
+          //  height: document.querySelector('.map-container')?.offsetHeight || 800,
+            //width: document.querySelector('.map-container')?.offsetWidth || 1200,
+           // style: {
+             // transform: 'scale(1.2)',
+//              transformOrigin: 'top left',
+  //          },
+    ////      },
+        //});
+
+      // map.whenReady(() => {
+      //    screenshotControl.addTo(map);
+      //    map.screenshotControl = screenshotControl;
+      //    mapRef.current._screenshotControlAdded = true;
+      //  });
+     // }
+ /* Screenshot capture button disabled */
       if (!mapRef.current._screenshotControlAdded) {
-        screenshotControl = L.simpleMapScreenshoter({
-          position: 'topleft',
-          screenName: `screenshot-${Date.now()}`,
-          preventCrossOrigin: false,
-          domtoimageOptions: {
-            bgcolor: '#fff',
-            height: document.querySelector('.map-container')?.offsetHeight || 800,
-            width: document.querySelector('.map-container')?.offsetWidth || 1200,
-            style: {
-              transform: 'scale(1.2)',
-              transformOrigin: 'top left',
-            },
-          },
-        });
-
-       map.whenReady(() => {
-          screenshotControl.addTo(map);
-          map.screenshotControl = screenshotControl;
-          mapRef.current._screenshotControlAdded = true;
-        });
+        // Intentionally do not create or add the screenshot control
+        mapRef.current._screenshotControlAdded = true;
       }
-
       const onLayerAdd = (e) => {
         if (e.layer instanceof L.TileLayer) setupTileListeners();
       };
