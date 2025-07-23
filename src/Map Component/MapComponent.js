@@ -452,6 +452,26 @@ const MapComponent = ({
         ).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         setMurabbaOptions(murabbas);
         setLabelGeoJsonData(data);
+
+        // ----- fit map to overall point extents -----
+        const map = mapRef.current;
+        if (map) {
+          const pts = data.features
+            .filter((f) => f.geometry?.type === 'Point')
+            .map((f) => f.geometry.coordinates);
+          if (pts.length) {
+            const lats = pts.map((p) => p[1]);
+            const lngs = pts.map((p) => p[0]);
+            const bounds = L.latLngBounds(
+              [Math.min(...lats), Math.min(...lngs)],
+              [Math.max(...lats), Math.max(...lngs)]
+            );
+            if (bounds.isValid()) {
+              map.fitBounds(bounds);
+              setBoundsFit(true);
+            }
+          }
+        }
       } catch (err) {
         console.error('Error loading label JSON:', err);
       }
