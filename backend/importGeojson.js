@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/your_database_name';
 
 // 2) Path to your GeoJSON files (script lives in root/backend)
-const GEO_ROOT = path.join(__dirname, '..', 'public', 'json murabba');
+const GEO_ROOT = path.join(__dirname, 'JSON Murabba');
 console.log('📂 Scanning for GeoJSON in:', GEO_ROOT);
 
 // 3) Define the GeoJSON schema/model (must match server.js)
