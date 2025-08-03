@@ -73,25 +73,13 @@ const LocateControl = L.Control.extend({
         }).addTo(map);
       }
 
-      // Only the very first time: zoom/pan to user
-      if (!this._hasZoomedToLocation) {
-        const currentZoom = map.getZoom();
-        const targetZoom = 18;
-        if (currentZoom > targetZoom) {
-          map.flyTo([latitude, longitude], targetZoom, {
-            animate: true,
-            duration: 2.5,
-            easeLinearity: 0.5,
-          });
-        } else {
-          map.flyTo([latitude, longitude], 18, {
-            animate: true,
-            duration: 2,
-            easeLinearity: 0.5,
-          });
-        }
-        this._hasZoomedToLocation = true;
-      }
+      // Smoothly animate the map to the live location on each update
+      map.flyTo([latitude, longitude], 18, {
+        animate: true,
+        duration: 2,
+        easeLinearity: 0.5,
+      });
+      this._hasZoomedToLocation = true;
     };
 
     // Start the Geolocation watch + buffer readings

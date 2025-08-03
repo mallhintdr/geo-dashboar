@@ -494,7 +494,11 @@ const MapComponent = ({
     if (feat) {
       if (feat.geometry.type === 'Point') {
         const [lng, lat] = feat.geometry.coordinates;
-        map.setView([lat, lng], 18);
+        map.flyTo([lat, lng], 18, {
+          animate: true,
+          duration: 2,
+          easeLinearity: 0.5,
+        });
       } else {
         const tmp = L.geoJSON(feat);
         if (tmp.getBounds().isValid()) map.fitBounds(tmp.getBounds());
@@ -506,10 +510,14 @@ const MapComponent = ({
   /* ------------------------------------------------------------------
    * Animate to newest Go-To marker (once per addition)
    * ---------------------------------------------------------------- */
-  useEffect(() => {
+   useEffect(() => {
     if (!mapRef.current || goToMarkers.length === 0) return;
     const { coords } = goToMarkers[goToMarkers.length - 1];
-    mapRef.current.flyTo(coords, 18, { animate: true, duration: 1.3 });
+    mapRef.current.flyTo(coords, 18, {
+      animate: true,
+      duration: 2,
+      easeLinearity: 0.5,
+    });
   }, [goToMarkers]);
 
   /* ------------------------------------------------------------------
@@ -538,6 +546,9 @@ const MapComponent = ({
         center={[30, 71]}
         zoom={5}
         maxZoom={21}
+        zoomSnap={0.5}
+        zoomDelta={0.55}
+        wheelPxPerZoomLevel={150}
         style={{ height: '100%', width: '100%' }}
         whenCreated={onMapInit}
         rotate={true}

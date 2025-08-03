@@ -165,8 +165,12 @@ const App = () => {
   const handleGoToLocation = ({ lat, lng }) => {
     setGoToMarkers((prev) => [...prev, { id: Date.now(), coords: [lat, lng] }]);
     setShowGoToForm(false);
-    mapRef.current?.flyTo([lat, lng], 18, { animate: true, duration: 1.2 });
-  };
+  mapRef.current?.flyTo([lat, lng], 18, {
+      animate: true,
+      duration: 2,
+      easeLinearity: 0.5,
+    });
+    };
 const handleDrawnLayerChange = useCallback((data) => {
     setDrawnLayerData(data);
   }, []);
