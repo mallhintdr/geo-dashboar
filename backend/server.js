@@ -281,19 +281,36 @@ app.get('/api/geojson/:tehsil/:mauza', async (req, res) => {
   console.log(`[${reqTime}] GeoJSON fetch requested: tehsil="${tehsil}", mauza="${mauza}"`);
 
   try {
-    const doc = await GeoJson.findOne({ tehsil, mauza });
-    if (!doc) {
-      console.log(`[${reqTime}] GeoJSON NOT FOUND for: "${tehsil}/${mauza}"`);
-      return res.status(404).json({ message: 'GeoJSON not found' });
+    // Attempt to read a locally stored GeoJSON file
+    const filePath = path.resolve(GEO_ROOT, tehsil, `${mauza}.geojson`);
+    let fileData = null;
+    try {
+      fileData = await fs.promises.readFile(filePath, 'utf8');
+      console.log(`[${reqTime}] Local file found for: "${tehsil}/${mauza}"`);
+    } catch {
+      console.log(`[${reqTime}] No local file for: "${tehsil}/${mauza}"`);
     }
 
-    const featuresCount = Array.isArray(doc.data.features)
-      ? doc.data.features.length
-      : 0;
-    console.log(
-      `[${reqTime}] GeoJSON FOUND for: "${tehsil}/${mauza}". Features: ${featuresCount}`
-    );
-    res.json(doc.data);
+    // Check the database; it takes precedence if present
+    const doc = await GeoJson.findOne({ tehsil, mauza });
+
+    if (doc) {
+      const featuresCount = Array.isArray(doc.data.features)
+        ? doc.data.features.length
+        : 0;
+      console.log(
+        `[${reqTime}] GeoJSON FOUND in DB for: "${tehsil}/${mauza}". Features: ${featuresCount}`
+      );
+      return res.json(doc.data);
+    }
+
+    if (fileData) {
+      console.log(`[${reqTime}] Serving GeoJSON from disk for: "${tehsil}/${mauza}"`);
+      return res.json(JSON.parse(fileData));
+    }
+
+    console.log(`[${reqTime}] GeoJSON NOT FOUND for: "${tehsil}/${mauza}"`);
+    res.status(404).json({ message: 'GeoJSON not found' });
   } catch (err) {
     console.error(
       `[${new Date().toISOString()}] Error fetching GeoJSON for "${tehsil}/${mauza}":`,
