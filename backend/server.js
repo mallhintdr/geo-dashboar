@@ -33,6 +33,11 @@ app.use(cookieParser());
 // Serve static tiles
 app.use('/Shajra Parcha', express.static(TILE_ROOT));
 
+// Serve generated murabba GeoJSON files
+// This allows requests like
+//   /JSON%20Murabba/<tehsil>/<mauza>/<murabbaNo>.geojson
+// to read from the "public/JSON Murabba" folder.
+app.use('/JSON Murabba', express.static(GEO_ROOT));
 // MongoDB Connection
 mongoose
   .connect(MONGO_URI)
