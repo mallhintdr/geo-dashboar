@@ -37,31 +37,68 @@ export const transformGeoJsonWithTurf = (geojsonData, topLeft, topRight, bottomR
   return geojsonData;
 };
 
-export const handleMurabbaClick = (murabbaFeature, map, mustateelLayers) => {
+export const handleMurabbaClick = async (
+  murabbaFeature,
+  map,
+  mustateelLayers,
+  murabbaBaseUrl
+) => {
+  const murabbaNo = murabbaFeature.properties?.Murabba_No;
+
+  if (murabbaBaseUrl && murabbaNo != null) {
+    const murabbaUrl = `${murabbaBaseUrl}/${murabbaNo}.geojson`;
+    try {
+      const res = await fetch(murabbaUrl);
+      if (res.ok) {
+        const murabbaGeo = await res.json();
+
+        if (mustateelLayers.current.length >= 4) {
+          map.removeLayer(mustateelLayers.current.shift());
+        }
+
+        const layer = L.geoJSON(murabbaGeo, {
+          style: { color: "#FFD700", weight: 2, fillOpacity: 0 },
+          onEachFeature: (feature, l) => {
+            bindKillaTooltip(feature, l, map);
+          },
+        }).addTo(map);
+
+        mustateelLayers.current.push(layer);
+        map.fitBounds(layer.getBounds());
+        return;
+      }
+    } catch (err) {
+      console.warn("Murabba file fetch failed, using template grid:", err);
+    }
+  }
+
   const murabbaCoordinates = murabbaFeature.geometry.coordinates[0];
   const topLeft = murabbaCoordinates[0];
   const topRight = murabbaCoordinates[1];
   const bottomRight = murabbaCoordinates[2];
   const bottomLeft = murabbaCoordinates[3];
 
-  const transformedGeojson = transformGeoJsonWithTurf({ ...MustateelGeojson }, topLeft, topRight, bottomRight, bottomLeft);
+  const transformedGeojson = transformGeoJsonWithTurf(
+    { ...MustateelGeojson },
+    topLeft,
+    topRight,
+    bottomRight,
+    bottomLeft
+  );
 
   if (mustateelLayers.current.length >= 4) {
-    map.removeLayer(mustateelLayers.current.shift()); // Remove the oldest layer if there are already 4
+    map.removeLayer(mustateelLayers.current.shift());
   }
 
   const mustateelLayer = L.geoJSON(transformedGeojson, {
-    style: {
-      color: "#FFD700",
-      weight: 2,
-      fillOpacity: 0,
-    },
+    style: { color: "#FFD700", weight: 2, fillOpacity: 0 },
     onEachFeature: (feature, layer) => {
       bindKillaTooltip(feature, layer, map);
     },
   }).addTo(map);
 
-  mustateelLayers.current.push(mustateelLayer); // Add the new layer to the array
+  mustateelLayers.current.push(mustateelLayer);
   map.fitBounds(mustateelLayer.getBounds());
 };
+
 

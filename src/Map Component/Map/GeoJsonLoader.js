@@ -57,8 +57,9 @@ const GeoJsonLoader = ({
       }
 
       // Split off any “?t=” cache-buster
-      const [baseUrl] = geoJsonUrl.split("?");
+     const [baseUrl] = geoJsonUrl.split("?");
       const fullUrl = geoJsonUrl; // e.g. "http://…/Yazman/1 DNB?t=12345"
+      const murabbaBase = baseUrl.replace("/api/geojson/", "/JSON%20Murabba/");
 
       // If the base (mauza path) changed, we will need to fitBounds again
       if (baseUrl !== previousBaseUrlRef.current) {
@@ -157,14 +158,14 @@ const GeoJsonLoader = ({
                   "[GeoJsonLoader] Murabba feature clicked:",
                   feature.properties.Murabba_No
                 );
-                handleMurabbaClick(feature, map, mustateelLayers);
+               handleMurabbaClick(feature, map, mustateelLayers, murabbaBase);
               });
               layer.on("programmaticSelect", () => {
                 console.log(
                   "[GeoJsonLoader] programmaticSelect feature:",
                   feature.properties.Murabba_No
                 );
-                handleMurabbaClick(feature, map, mustateelLayers);
+               handleMurabbaClick(feature, map, mustateelLayers, murabbaBase);
               });
             }
           },
