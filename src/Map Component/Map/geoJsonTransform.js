@@ -46,9 +46,7 @@ export const handleMurabbaClick = async (
   const murabbaNo = murabbaFeature.properties?.Murabba_No;
 
   if (murabbaBaseUrl && murabbaNo != null) {
-    // Ensure the request URL is correctly encoded so that Tehsil,
-    // Mauza or Murabba numbers containing spaces or special characters
-    // resolve to the corresponding file in "public/JSON Murabba".
+    
     const base = murabbaBaseUrl.endsWith("/")
       ? murabbaBaseUrl
       : `${murabbaBaseUrl}/`;

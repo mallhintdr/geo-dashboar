@@ -137,7 +137,7 @@ const GeoJsonLoader = ({
           geoJsonData.features[0].geometry.coordinates
         );
 
-        // Build sorted list of Murabba_No
+        
         // Collect Murabba numbers as strings so downstream components
         // (which rely on string methods like toLowerCase) behave
         // consistently regardless of whether the source value is a
@@ -243,7 +243,6 @@ const GeoJsonLoader = ({
     onGeoJsonLoaded,
     resetFlag,
   ]);
-
   // When a Murabba is selected externally, fire its “programmaticSelect” event
   useEffect(() => {
     if (onMurabbaSelect && geoJsonLayerRef.current) {
@@ -259,8 +258,9 @@ const GeoJsonLoader = ({
           if (
             String(layer.feature.properties?.Murabba_No) ===
             String(onMurabbaSelect)
-          )
-           {            console.log(
+          ) 
+           {            
+            console.log(
               "[GeoJsonLoader] Firing programmaticSelect on layer:",
               onMurabbaSelect
             );
