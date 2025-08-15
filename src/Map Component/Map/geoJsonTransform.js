@@ -38,7 +38,7 @@ export const transformGeoJsonWithTurf = (geojsonData, topLeft, topRight, bottomR
 };
 
 export const handleMurabbaClick = async (
-  murabbaFeature,
+ murabbaFeature,
   map,
   mustateelLayers,
   murabbaBaseUrl
@@ -46,19 +46,14 @@ export const handleMurabbaClick = async (
   const murabbaNo = murabbaFeature.properties?.Murabba_No;
 
   if (murabbaBaseUrl && murabbaNo != null) {
-    
     const base = murabbaBaseUrl.endsWith("/")
       ? murabbaBaseUrl
       : `${murabbaBaseUrl}/`;
-    const murabbaUrl = new URL(
-      `${encodeURIComponent(murabbaNo)}.geojson`,
-      base
-    ).toString();
+    const murabbaUrl = `${base}${encodeURIComponent(murabbaNo)}.geojson`;
     try {
       const res = await fetch(murabbaUrl);
       if (res.ok) {
         const murabbaGeo = await res.json();
-
         if (mustateelLayers.current.length >= 4) {
           map.removeLayer(mustateelLayers.current.shift());
         }

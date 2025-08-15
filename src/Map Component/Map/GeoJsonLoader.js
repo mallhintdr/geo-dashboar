@@ -59,7 +59,9 @@ const GeoJsonLoader = ({
       // Split off any “?t=” cache-buster
       const [baseUrl] = geoJsonUrl.split("?");
       const fullUrl = geoJsonUrl; // e.g. "http://…/Yazman/1 DNB?t=12345"
-      const murabbaBase = baseUrl.replace("/api/geojson/", "/JSON%20Murabba/");
+
+      const relativePath = baseUrl.split("/api/geojson/")[1] || "";
+      const murabbaBase = `${process.env.PUBLIC_URL || ""}/JSON%20Murabba/${relativePath}/`;
 
       // If the base (mauza path) changed, we will need to fitBounds again
       if (baseUrl !== previousBaseUrlRef.current) {
