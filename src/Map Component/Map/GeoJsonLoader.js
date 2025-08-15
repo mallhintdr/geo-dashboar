@@ -57,7 +57,7 @@ const GeoJsonLoader = ({
       }
 
       // Split off any “?t=” cache-buster
-     const [baseUrl] = geoJsonUrl.split("?");
+      const [baseUrl] = geoJsonUrl.split("?");
       const fullUrl = geoJsonUrl; // e.g. "http://…/Yazman/1 DNB?t=12345"
       const murabbaBase = baseUrl.replace("/api/geojson/", "/JSON%20Murabba/");
 

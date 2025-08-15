@@ -100,5 +100,3 @@ export const handleMurabbaClick = async (
   mustateelLayers.current.push(mustateelLayer);
   map.fitBounds(mustateelLayer.getBounds());
 };
-
-
