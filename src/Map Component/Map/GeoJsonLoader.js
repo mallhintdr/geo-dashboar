@@ -138,12 +138,14 @@ const GeoJsonLoader = ({
         );
 
         // Build sorted list of Murabba_No
+        // Collect Murabba numbers as strings so downstream components
+        // (which rely on string methods like toLowerCase) behave
+        // consistently regardless of whether the source value is a
+        // number or already a string in the GeoJSON.
         const murabbaNumbers = geoJsonData.features
           .filter((f) => f.properties?.Murabba_No != null)
-          .map((f) => f.properties.Murabba_No)
-          .sort((a, b) =>
-            String(a).localeCompare(String(b), undefined, { numeric: true })
-          );
+          .map((f) => String(f.properties.Murabba_No))
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
         console.log("[GeoJsonLoader] murabbaNumbers:", murabbaNumbers);
         setMurabbaOptions(murabbaNumbers);
 
@@ -249,12 +251,16 @@ const GeoJsonLoader = ({
       const featureToSelect = geoJsonLayerRef.current
         .toGeoJSON()
         .features.find(
-          (feat) => feat.properties?.Murabba_No === onMurabbaSelect
+          (feat) =>
+            String(feat.properties?.Murabba_No) === String(onMurabbaSelect)
         );
       if (featureToSelect) {
         geoJsonLayerRef.current.eachLayer((layer) => {
-          if (layer.feature.properties?.Murabba_No === onMurabbaSelect) {
-            console.log(
+          if (
+            String(layer.feature.properties?.Murabba_No) ===
+            String(onMurabbaSelect)
+          )
+           {            console.log(
               "[GeoJsonLoader] Firing programmaticSelect on layer:",
               onMurabbaSelect
             );
