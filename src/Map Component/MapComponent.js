@@ -1,5 +1,5 @@
 // src/Map Component/MapComponent.js
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet';
 import LocateControl from './LocateControl';
 import LayerControl from './LayerControl';
@@ -98,6 +98,7 @@ const MapComponent = ({
   const encodedBase = encodeURIComponent('Shajra Parcha');
   const encodedTehsil = encodeURIComponent(tehsilStr);
   const encodedMauza = encodeURIComponent(mauzaStr);
+  const cacheBuster = useMemo(() => Date.now(), [selectedMauza]);
 
   /* -------- mode: geojson-only | shajra -------- */
   const [dataMode, setDataMode] = useState(null);
@@ -297,11 +298,11 @@ const MapComponent = ({
    * =================================================================== */
   useEffect(() => {
     if (!tehsilStr || !selectedMauza) return;
-    const metaPath = `/${encodedBase}/${encodedTehsil}/${encodedMauza}.json`;
+    const metaPath = `/${encodedBase}/${encodedTehsil}/${encodedMauza}.json?t=${cacheBuster}`;
     const load = async () => {
       setShajraMeta(null);
       try {
-        const res = await fetch(metaPath);
+        const res = await fetch(metaPath, { cache: 'no-store' });
         const isJson = (res.headers.get('Content-Type') || '').includes('application/json');
         if (res.ok && isJson) {
           const data = await res.json();
@@ -335,7 +336,7 @@ const MapComponent = ({
       : null;
   const labelGeoJsonUrl =
     dataMode === 'shajra' && selectedMauza
-      ? `/${encodedBase}/${encodedTehsil}/${encodedMauza}.geojson`
+      ? `/${encodedBase}/${encodedTehsil}/${encodedMauza}.geojson?t=${cacheBuster}`
       : null;
   
   /* Reset shajra layer on Mauza change */
@@ -440,7 +441,7 @@ const MapComponent = ({
     if (dataMode !== 'shajra' || !labelGeoJsonUrl) return;
     const load = async () => {
       try {
-        const res = await fetch(labelGeoJsonUrl);
+        const res = await fetch(labelGeoJsonUrl, { cache: 'no-store' });
         const txt = await res.text();
         const data = JSON.parse(txt);
         const murabbas = Array.from(

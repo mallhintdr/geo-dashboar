@@ -53,9 +53,9 @@ export const handleMurabbaClick = async (
     // Replace all slashes with dashes so the URL matches the stored
     // "<murabba>.geojson" naming convention.
     const sanitizedMurabba = String(murabbaNo).replace(/\//g, "-");
-    const murabbaUrl = `${base}${encodeURIComponent(sanitizedMurabba)}.geojson`;
+    const murabbaUrl = `${base}${encodeURIComponent(sanitizedMurabba)}.geojson?t=${Date.now()}`;
     try {
-      const res = await fetch(murabbaUrl);
+      const res = await fetch(murabbaUrl, { cache: 'no-store' });
       if (res.ok) {
         const murabbaGeo = await res.json();
         if (mustateelLayers.current.length >= 4) {

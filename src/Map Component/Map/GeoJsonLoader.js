@@ -103,7 +103,7 @@ const GeoJsonLoader = ({
       // Fetch + parse + add new GeoJSON layer
       try {
         console.log("[GeoJsonLoader] Fetching GeoJSON from:", fullUrl);
-        const response = await fetch(fullUrl);
+        const response = await fetch(fullUrl, { cache: 'no-store' });
         const text = await response.text();
         console.log("[GeoJsonLoader] Fetch response status:", response.status);
 

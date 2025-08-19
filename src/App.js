@@ -140,8 +140,9 @@ const App = () => {
     (mauza) => {
       if (!user) return;
       const apiBaseUrl = process.env.REACT_APP_API_URL || '';
-      setGeoJsonPath(`${apiBaseUrl}/api/geojson/${user.tehsil}/${mauza}`);
-
+      setGeoJsonPath(
+        `${apiBaseUrl}/api/geojson/${user.tehsil}/${mauza}?t=${Date.now()}`
+      );
       setSelectedMauza(mauza);
       setMurabbaOptions([]);
       setSelectedMurabba(null);
