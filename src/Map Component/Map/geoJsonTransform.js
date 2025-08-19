@@ -49,7 +49,11 @@ export const handleMurabbaClick = async (
     const base = murabbaBaseUrl.endsWith("/")
       ? murabbaBaseUrl
       : `${murabbaBaseUrl}/`;
-    const murabbaUrl = `${base}${encodeURIComponent(murabbaNo)}.geojson`;
+    // Some murabba numbers contain "/" which cannot appear in file names.
+    // Replace all slashes with dashes so the URL matches the stored
+    // "<murabba>.geojson" naming convention.
+    const sanitizedMurabba = String(murabbaNo).replace(/\//g, "-");
+    const murabbaUrl = `${base}${encodeURIComponent(sanitizedMurabba)}.geojson`;
     try {
       const res = await fetch(murabbaUrl);
       if (res.ok) {
