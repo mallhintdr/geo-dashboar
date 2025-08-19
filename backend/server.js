@@ -284,7 +284,7 @@ app.get('/api/geojson/:tehsil/:mauza', async (req, res) => {
   const { tehsil, mauza } = req.params;
   const reqTime = new Date().toISOString();
   console.log(`[${reqTime}] GeoJSON fetch requested: tehsil="${tehsil}", mauza="${mauza}"`);
-
+  res.set('Cache-Control', 'no-store');
   try {
     // Attempt to read a locally stored GeoJSON file
     const filePath = path.resolve(GEO_ROOT, tehsil, `${mauza}.geojson`);
