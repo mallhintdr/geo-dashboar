@@ -125,15 +125,25 @@ const calculateDatesAndStatus = (startDate, subscriptionType) => {
     Annual: 365
   };
   const days = subscriptionDays[subscriptionType] || 0;
-  const start = new Date(startDate);
-  const endDate = new Date(start);
-  endDate.setDate(endDate.getDate() + days);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // All date math should respect GMT+5 (Asia/Karachi)
+  const OFFSET_MS = 5 * 60 * 60 * 1000; // +5 hours in milliseconds
+
+  // Normalize the start date to midnight in GMT+5
+  const start = new Date(new Date(startDate).getTime() + OFFSET_MS);
+  start.setUTCHours(0, 0, 0, 0);
+
+  // Calculate end date in GMT+5 then convert back to UTC
+  const endLocal = new Date(start);
+  endLocal.setUTCDate(endLocal.getUTCDate() + days);
+  const endDate = new Date(endLocal.getTime() - OFFSET_MS);
+
+  // Today's date in GMT+5
+  const today = new Date(Date.now() + OFFSET_MS);
+  today.setUTCHours(0, 0, 0, 0);
 
   const daysRemaining = Math.max(
-    Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)),
+    Math.ceil((endLocal - today) / (1000 * 60 * 60 * 24)),
     0
   );
   const status = daysRemaining > 0 ? 'Active' : 'Inactive';
