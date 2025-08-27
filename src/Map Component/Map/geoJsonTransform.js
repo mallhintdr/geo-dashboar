@@ -45,6 +45,18 @@ export const handleMurabbaClick = async (
 ) => {
   const murabbaNo = murabbaFeature.properties?.Murabba_No;
 
+  // Avoid loading the same murabba multiple times
+  if (murabbaNo != null) {
+    const existing = mustateelLayers.current.find(
+      (layer) => layer.murabbaNo === murabbaNo
+    );
+    if (existing) {
+      // If already loaded, simply zoom to it
+      map.fitBounds(existing.getBounds());
+      return;
+    }
+  }
+
   if (murabbaBaseUrl && murabbaNo != null) {
     const base = murabbaBaseUrl.endsWith("/")
       ? murabbaBaseUrl
@@ -58,9 +70,6 @@ export const handleMurabbaClick = async (
       const res = await fetch(murabbaUrl, { cache: 'no-store' });
       if (res.ok) {
         const murabbaGeo = await res.json();
-        if (mustateelLayers.current.length >= 4) {
-          map.removeLayer(mustateelLayers.current.shift());
-        }
 
         const layer = L.geoJSON(murabbaGeo, {
           style: { color: "#FFD700", weight: 2, fillOpacity: 0 },
@@ -69,6 +78,7 @@ export const handleMurabbaClick = async (
           },
         }).addTo(map);
 
+        layer.murabbaNo = murabbaNo;
         mustateelLayers.current.push(layer);
         map.fitBounds(layer.getBounds());
         return;
@@ -92,10 +102,6 @@ export const handleMurabbaClick = async (
     bottomLeft
   );
 
-  if (mustateelLayers.current.length >= 4) {
-    map.removeLayer(mustateelLayers.current.shift());
-  }
-
   const mustateelLayer = L.geoJSON(transformedGeojson, {
     style: { color: "#FFD700", weight: 2, fillOpacity: 0 },
     onEachFeature: (feature, layer) => {
@@ -103,6 +109,7 @@ export const handleMurabbaClick = async (
     },
   }).addTo(map);
 
+  mustateelLayer.murabbaNo = murabbaNo;
   mustateelLayers.current.push(mustateelLayer);
   map.fitBounds(mustateelLayer.getBounds());
 };
