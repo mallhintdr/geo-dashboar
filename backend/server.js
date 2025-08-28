@@ -1,5 +1,11 @@
 // server.js
-require('dotenv').config();
+const dotenv = require('dotenv');
+const env = dotenv.config();
+if (env.error) {
+  console.warn('.env file not found; relying on existing environment variables');
+} else {
+  console.log('Loaded environment variables from .env');
+}
 
 const express = require('express');
 const mongoose = require('mongoose');
@@ -13,10 +19,9 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
 const app = express();
-
+const CORS_ORIGIN=process.env.CORS_ORIGIN;
 const PORT = process.env.PORT;
 const SECRET_KEY = process.env.SECRET_KEY;
-const CORS_ORIGIN = process.env.CORS_ORIGIN;
 const MONGO_URI = process.env.MONGO_URI;
 
 // Paths for serving static files
@@ -26,11 +31,13 @@ const GEO_ROOT    = path.join(PUBLIC_ROOT, 'JSON Murabba');
 const TILE_ROOT   = path.join(PUBLIC_ROOT, 'Shajra Parcha');
 
 // Middleware Configuration
-//app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
-const allowed = [
-  'https://dashboard.naqsha-zameen.pk',
-  'http://localhost:3000'        // remove if not needed
-];
+// Use comma‐separated list from env for allowed origins so deployments can
+// configure CORS without modifying the source code. Example:
+//   CORS_ORIGIN="https://dashboard.naqsha-zameen.pk,http://localhost:3000"
+const allowed = CORS_ORIGIN
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
