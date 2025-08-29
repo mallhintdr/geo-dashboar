@@ -7,11 +7,9 @@ import locationIcon from './images/location.png';
 import './css/LocateControl.css';
 
 /**
- * Revised LocateControl:
- * 1. Once clicked, it immediately disables further clicks until the first fix.
- * 2. After the first fix (and zoom), it remains “active” and ignores any further clicks.
- * 3. There is no longer a built-in “toggle‐off” via a second click. (If you need a stop button later,
- *    you can add it separately.)
+ * LocateControl with toggle functionality:
+ * - Clicking the button starts tracking and shows the user's live location.
+ * - Clicking again stops tracking and removes the location marker.
  */
 
 const LocateControl = L.Control.extend({
@@ -20,16 +18,12 @@ const LocateControl = L.Control.extend({
     this._accuracyCircle = null;
     this._watchId = null;
     this._intervalId = null;
-
-    // Flag to know whether we've zoomed/panned to the first fix
     this._hasZoomedToLocation = false;
 
-    // Create the button element
     const button = L.DomUtil.create('button', 'leaflet-location-icon');
     button.title = 'Track My Live Location';
     button.style.backgroundImage = `url('${locationIcon}')`;
 
-    // Calculate averaged position from buffered readings:
     const calculateAverageLocation = (locations) => {
       const total = locations.reduce(
         (acc, loc) => ({
@@ -47,7 +41,6 @@ const LocateControl = L.Control.extend({
       };
     };
 
-    // When we get an averaged reading, place/animate marker + circle
     const updateLocationDisplay = (latitude, longitude, accuracy) => {
       if (this._userMarker) {
         this._userMarker.setLatLng([latitude, longitude]);
@@ -73,7 +66,6 @@ const LocateControl = L.Control.extend({
         }).addTo(map);
       }
 
-      // Smoothly animate the map to the live location only on the first update
       if (!this._hasZoomedToLocation) {
         map.flyTo([latitude, longitude], 18, {
           animate: true,
@@ -84,20 +76,20 @@ const LocateControl = L.Control.extend({
       }
     };
 
-    // Start the Geolocation watch + buffer readings
+    let locationBuffer = [];
+
     const startTracking = () => {
       if (!('geolocation' in navigator)) {
         alert('Geolocation is not supported by your browser.');
         return;
       }
 
-      let locationBuffer = [];
+      locationBuffer = [];
       this._watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude, accuracy } = position.coords;
           locationBuffer.push({ latitude, longitude, accuracy });
 
-          // Keep only the latest 50 readings
           if (locationBuffer.length > 50) {
             locationBuffer.shift();
           }
@@ -109,30 +101,48 @@ const LocateControl = L.Control.extend({
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
 
-      // Every 5 seconds, compute average and update map
       this._intervalId = setInterval(() => {
         if (locationBuffer.length === 0) return;
         const { latitude, longitude, accuracy } = calculateAverageLocation(locationBuffer);
         updateLocationDisplay(latitude, longitude, accuracy);
-        // Clear buffer so next interval only has new points
         locationBuffer = [];
       }, 5000);
     };
 
-    // Disable further clicks once tracking has begun:
-    const onButtonClick = () => {
-      // If we've already started watchPosition, ignore any further clicks
+    const stopTracking = () => {
       if (this._watchId !== null) {
-        return;
+        navigator.geolocation.clearWatch(this._watchId);
+        this._watchId = null;
       }
-
-      // Mark button as “active” and start tracking
-      this._watchId = -1; // placeholder indicating “we’ve started the process”
+      if (this._intervalId !== null) {
+        clearInterval(this._intervalId);
+        this._intervalId = null;
+      }
+      locationBuffer = [];
+      if (this._userMarker) {
+        map.removeLayer(this._userMarker);
+        this._userMarker = null;
+      }
+      if (this._accuracyCircle) {
+        map.removeLayer(this._accuracyCircle);
+        this._accuracyCircle = null;
+      }
       this._hasZoomedToLocation = false;
-      L.DomUtil.addClass(button, 'leaflet-location-icon-active');
-      button.title = 'Locating…';
+      L.DomUtil.removeClass(button, 'leaflet-location-icon-active');
+      button.title = 'Track My Live Location';
+    };
 
-      startTracking();
+    this._stopTracking = stopTracking;
+
+    const onButtonClick = () => {
+      if (this._watchId === null) {
+        this._hasZoomedToLocation = false;
+        L.DomUtil.addClass(button, 'leaflet-location-icon-active');
+        button.title = 'Locating…';
+        startTracking();
+      } else {
+        stopTracking();
+      }
     };
 
     L.DomEvent.on(button, 'click', onButtonClick);
@@ -141,19 +151,8 @@ const LocateControl = L.Control.extend({
   },
 
   onRemove: function (map) {
-    // Clean up geolocation
-    if (this._watchId !== null && this._watchId !== -1) {
-      navigator.geolocation.clearWatch(this._watchId);
-    }
-    if (this._intervalId !== null) {
-      clearInterval(this._intervalId);
-    }
-    // Remove marker/circle if still present
-    if (this._userMarker) {
-      map.removeLayer(this._userMarker);
-    }
-    if (this._accuracyCircle) {
-      map.removeLayer(this._accuracyCircle);
+    if (this._stopTracking) {
+      this._stopTracking();
     }
   },
 });
