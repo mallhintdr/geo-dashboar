@@ -19,6 +19,7 @@ const LocateControl = L.Control.extend({
     this._watchId = null;
     this._intervalId = null;
     this._hasZoomedToLocation = false;
+    this._locatingMessage = null;
 
     const button = L.DomUtil.create('button', 'leaflet-location-icon');
     button.title = 'Track My Live Location';
@@ -84,11 +85,21 @@ const LocateControl = L.Control.extend({
         return;
       }
 
+      if (!this._locatingMessage) {
+        this._locatingMessage = L.DomUtil.create('div', 'locating-message', map._container);
+        this._locatingMessage.innerText = 'Acquiring location…';
+      }
+
       locationBuffer = [];
       this._watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude, accuracy } = position.coords;
           locationBuffer.push({ latitude, longitude, accuracy });
+
+          if (this._locatingMessage) {
+            map._container.removeChild(this._locatingMessage);
+            this._locatingMessage = null;
+          }
 
           if (locationBuffer.length > 50) {
             locationBuffer.shift();
@@ -97,6 +108,10 @@ const LocateControl = L.Control.extend({
         (error) => {
           console.error('Error retrieving location:', error.message);
           alert('Unable to retrieve location. Ensure GPS or internet is active.');
+          if (this._locatingMessage) {
+            map._container.removeChild(this._locatingMessage);
+            this._locatingMessage = null;
+          }
         },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
@@ -126,6 +141,10 @@ const LocateControl = L.Control.extend({
       if (this._accuracyCircle) {
         map.removeLayer(this._accuracyCircle);
         this._accuracyCircle = null;
+      }
+      if (this._locatingMessage) {
+        map._container.removeChild(this._locatingMessage);
+        this._locatingMessage = null;
       }
       this._hasZoomedToLocation = false;
       L.DomUtil.removeClass(button, 'leaflet-location-icon-active');
