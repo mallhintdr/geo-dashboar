@@ -73,13 +73,15 @@ const LocateControl = L.Control.extend({
         }).addTo(map);
       }
 
-      // Smoothly animate the map to the live location on each update
-      map.flyTo([latitude, longitude], 18, {
-        animate: true,
-        duration: 2,
-        easeLinearity: 0.5,
-      });
-      this._hasZoomedToLocation = true;
+      // Smoothly animate the map to the live location only on the first update
+      if (!this._hasZoomedToLocation) {
+        map.flyTo([latitude, longitude], 18, {
+          animate: true,
+          duration: 2,
+          easeLinearity: 0.5,
+        });
+        this._hasZoomedToLocation = true;
+      }
     };
 
     // Start the Geolocation watch + buffer readings
