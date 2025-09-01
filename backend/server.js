@@ -20,14 +20,30 @@ const nodemailer = require('nodemailer');
 
 const app = express();
 
+// -------------------- HELPERS --------------------
+// Normalize origins for consistent comparison
+const normalizeOrigin = (o) => {
+  if (!o) return '';
+  try {
+    if (o.includes('*')) return o.toLowerCase().replace(/\/+$/, '');
+    const u = new URL(o);
+    return `${u.protocol}//${u.host}`.toLowerCase().replace(/\/+$/, '');
+  } catch {
+    return o.toLowerCase().replace(/\/+$/, '');
+  }
+};
+
 // -------------------- ENV --------------------
-const PORT        = process.env.PORT || 5000;
-const SECRET_KEY  = process.env.SECRET_KEY;
-const MONGO_URI   = process.env.MONGO_URI;
-const CORS_ORIGIN = (process.env.CORS_ORIGIN || '').split(',')[0].trim();
-const SMTP_USER   = process.env.SMTP_USER || '';  // e.g. reset-password@naqsha-zameen.pk␊
-const SMTP_PASS   = process.env.SMTP_PASS || '';
-const FRONTEND_URL = process.env.FRONTEND_URL || CORS_ORIGIN;
+const PORT            = process.env.PORT || 5000;
+const SECRET_KEY      = process.env.SECRET_KEY;
+const MONGO_URI       = process.env.MONGO_URI;
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map(normalizeOrigin)
+  .filter(Boolean);
+const SMTP_USER       = process.env.SMTP_USER || '';  // e.g. reset-password@naqsha-zameen.pk
+const SMTP_PASS       = process.env.SMTP_PASS || '';
+const FRONTEND_URL    = process.env.FRONTEND_URL || ALLOWED_ORIGINS[0];
 
 // -------------------- STATIC PATHS --------------------
 const ROOT        = path.join(__dirname, '..');        // geo-dashboard/
@@ -46,19 +62,28 @@ const transporter = (SMTP_USER && SMTP_PASS)
   : null;
 
 // -------------------- CORS (ALLOW-LIST WITH NORMALIZATION & WILDCARD) --------------------
-app.use(cors({ origin: CORS_ORIGIN, credentials: true }));
-
-// Preserve normalization utility for other parts of the app
-const normalizeOrigin = (o) => {
-  if (!o) return '';
-  try {
-    if (o.includes('*')) return o.toLowerCase().replace(/\/+$/, '');
-    const u = new URL(o);
-    return `${u.protocol}//${u.host}`.toLowerCase().replace(/\/+$/, '');
-  } catch {
-    return o.toLowerCase().replace(/\/+$/, '');
-  }
+const isOriginAllowed = (origin) => {
+  const normalized = normalizeOrigin(origin);
+  return ALLOWED_ORIGINS.some((allowed) => {
+    if (allowed.includes('*')) {
+      const pattern = new RegExp('^' + allowed.replace(/\*/g, '.*') + '$');
+      return pattern.test(normalized);
+    }
+    return allowed === normalized;
+  });
 };
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -406,7 +431,7 @@ app.post('/forgot-password', async (req, res) => {
     }
 
     const resetToken = jwt.sign({ userId: user.userId }, SECRET_KEY, { expiresIn: '1h' });
-    const feBase = normalizeOrigin(FRONTEND_URL || CORS_ORIGIN).trim();
+    const feBase = normalizeOrigin(FRONTEND_URL).trim();
     const resetLink = `${feBase}/reset-password?token=${resetToken}`;
 
     await transporter.sendMail({
@@ -442,7 +467,7 @@ app.post('/api/auth/request-reset', async (req, res) => {
     user.resetPasswordExpires = Date.now() + 1000 * 60 * 60;
     await user.save();
 
-    const feBase = normalizeOrigin(FRONTEND_URL || CORS_ORIGIN).trim();
+    const feBase = normalizeOrigin(FRONTEND_URL).trim();
     const resetLink = `${feBase}/reset-password/${token}`;
 
     if (!transporter) {
@@ -917,4 +942,6 @@ app.get('/api/landrecords/details/:khewatId', isAuthenticated, async (req, res) 
 });
 
 // -------------------- START --------------------
-app.listen(PORT, () => console.log(`Server running on ${CORS_ORIGIN}`));
+app.listen(PORT, () =>
+  console.log(`Server running on port ${PORT} (CORS: ${ALLOWED_ORIGINS.join(', ')})`)
+);
