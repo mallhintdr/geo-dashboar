@@ -85,12 +85,15 @@ const corsOptions = {
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
 };
 
 app.use(cors(corsOptions));
 
-// Explicit preflight handling for login route
-app.options('/login', cors(corsOptions));
+// Global preflight handler for all routes
+app.options('*', cors(corsOptions));
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -376,7 +379,7 @@ app.post('/login', async (req, res) => {
       .cookie('authToken', token, {
         httpOnly: true,
         secure:   process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' required for cross-origin cookies
         maxAge:   30 * 24 * 60 * 60 * 1000
       })
       .json({ message: 'Login successful' });
