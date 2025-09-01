@@ -956,6 +956,15 @@ app.get('/api/landrecords/details/:khewatId', isAuthenticated, async (req, res) 
     res.status(500).json({ error: 'Unable to fetch record' });
   }
 });
+// FINAL middleware to set CORS headers even on error responses
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && isOriginAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
+});
 
 // -------------------- START --------------------
 app.listen(PORT, () =>
