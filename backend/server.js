@@ -37,10 +37,14 @@ const normalizeOrigin = (o) => {
 const PORT            = process.env.PORT || 5000;
 const SECRET_KEY      = process.env.SECRET_KEY;
 const MONGO_URI       = process.env.MONGO_URI;
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || '')
-  .split(',')
-  .map(normalizeOrigin)
-  .filter(Boolean);
+
+// Ensure dashboard.naqsha-zameen.pk is always allowed for CORS
+const DEFAULT_ALLOWED_ORIGINS = ['https://dashboard.naqsha-zameen.pk'];
+const ALLOWED_ORIGINS = Array.from(new Set(
+  [...DEFAULT_ALLOWED_ORIGINS, ...(process.env.CORS_ORIGIN || '').split(',')]
+    .map(normalizeOrigin)
+    .filter(Boolean)
+));
 const SMTP_USER       = process.env.SMTP_USER || '';  // e.g. reset-password@naqsha-zameen.pk
 const SMTP_PASS       = process.env.SMTP_PASS || '';
 const FRONTEND_URL    = process.env.FRONTEND_URL || ALLOWED_ORIGINS[0];
@@ -73,17 +77,29 @@ const isOriginAllowed = (origin) => {
   });
 };
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || isOriginAllowed(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
+// Explicit preflight handling for login route
+app.options('/login', cors(corsOptions));
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && isOriginAllowed(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  next();
+});
 
 app.use(express.json());
 app.use(cookieParser());
